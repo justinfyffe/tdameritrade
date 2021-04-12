@@ -3,7 +3,7 @@ export enum EquityOrderLegInstruction {
   Sell = 'SELL',
   BuyToCover = 'BUY_TO_COVER',
   SellShort = 'SELL_SHORT',
-  None = 'NONE'
+  None = 'NONE',
 }
 
 export enum EquityOrderType {
@@ -13,19 +13,19 @@ export enum EquityOrderType {
   StopLimit = 'STOP_LIMIT',
   TrailingStop = 'TRAILING_STOP',
   MarketOnClose = 'MARKET_ON_CLOSE',
-  None = 'NONE'
+  None = 'NONE',
 }
 
 export enum EquityOrderPriceLinkType {
   Value = 'VALUE',
   Percent = 'PERCENT',
-  None = 'NONE'
+  None = 'NONE',
 }
 
 export enum EquityOrderDuration {
   Day = 'DAY',
   GoodTillCancel = 'GOOD_TILL_CANCEL',
-  None = 'NONE'
+  None = 'NONE',
 }
 
 export enum EquityOrderMarketSession {
@@ -33,7 +33,7 @@ export enum EquityOrderMarketSession {
   PM = 'PM',
   Normal = 'NORMAL',
   Seamless = 'SEAMLESS',
-  None = 'NONE'
+  None = 'NONE',
 }
 
 export enum TaxLotMethod {
@@ -43,7 +43,7 @@ export enum TaxLotMethod {
   LowCost = 'LOW_COST',
   MinimumTax = 'MINIMUM_TAX',
   AverageCost = 'AVERAGE_COST',
-  None = 'NONE'
+  None = 'NONE',
 }
 
 export enum AdvancedToolLaunch {
@@ -52,20 +52,20 @@ export enum AdvancedToolLaunch {
   Y = 'Y',
   TOS = 'TOS',
   None = 'NONE',
-  CC2 = 'CC2'
+  CC2 = 'CC2',
 }
 
 export enum AuthTokenTimeout {
   FiftyFiveMinutes = 'FIFTY_FIVE_MINUTES',
   TwoHours = 'TWO_HOURS',
   FourHours = 'FOUR_HOURS',
-  EightHours = 'EIGHT_HOURS' 
+  EightHours = 'EIGHT_HOURS',
 }
 
 export enum ProfessionalStatus {
   Professional = 'PROFESSIONAL',
   NonProfessional = 'NON_PROFESSIONAL',
-  UnknownStatus = 'UNKNOWN_STATUS'
+  UnknownStatus = 'UNKNOWN_STATUS',
 }
 
 export enum OptionTradingLevel {
@@ -73,7 +73,7 @@ export enum OptionTradingLevel {
   Full = 'FULL',
   Long = 'LONG',
   Spread = 'SPREAD',
-  None = 'NONE'
+  None = 'NONE',
 }
 
 export interface Preferences {
@@ -90,7 +90,7 @@ export interface Preferences {
   optionTaxLotMethod: TaxLotMethod;
   equityTaxLotMethod: TaxLotMethod;
   defaultAdvancedToolLaunch: AdvancedToolLaunch;
-  authTokenTimeout: AuthTokenTimeout
+  authTokenTimeout: AuthTokenTimeout;
 }
 
 export interface SubscriptionKeys {
@@ -117,7 +117,7 @@ export interface UserPrincipal {
 
 export interface StreamerInfo {
   streamerBinaryUrl: string;
-  streamerSocketUrl:  string;
+  streamerSocketUrl: string;
   token: string;
   tokenTimestamp: string;
   userGroup: string;
@@ -148,7 +148,7 @@ export interface Account {
   surrogateIds: unknown;
   preferences: Preferences;
   acl: string;
-  authorizations: Authorizations
+  authorizations: Authorizations;
 }
 
 export interface Authorizations {

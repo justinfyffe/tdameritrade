@@ -13,14 +13,14 @@ export enum TransactionType {
   Memorandum = 'MEMORANDUM',
   MarginCall = 'MARGIN_CALL',
   MoneyMarket = 'MONEY_MARKET',
-  SmaAdjustment = 'SMA_ADJUSTMENT'
+  SmaAdjustment = 'SMA_ADJUSTMENT',
 }
 
 export enum AchStatus {
   Approved = 'Approved',
   Reject = 'Rejected',
   Cancel = 'Cancel',
-  Error = 'Error'
+  Error = 'Error',
 }
 
 export interface Transaction {

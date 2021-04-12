@@ -1,6 +1,4 @@
-export interface Quote {
-  
-}
+export interface Quote {}
 
 export interface MutualFundQuote extends Quote {
   symbol: string;
@@ -20,7 +18,6 @@ export interface MutualFundQuote extends Quote {
   divYield: number;
   divDate: string;
   securityStatus: string;
-
 }
 
 export interface FutureQuote extends Quote {
@@ -220,7 +217,6 @@ export interface EtfQuote extends Quote {
   regularMarketNetChange: number;
   regularMarketTradeTimeInLong: number;
 }
-
 
 export interface EquityQuote extends Quote {
   symbol: string;

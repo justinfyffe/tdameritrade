@@ -1,3 +1,4 @@
+import { Client } from './client';
 import { Instrument } from './instruments';
 
 export enum OrderSession {
@@ -58,7 +59,7 @@ export enum OrderDestination {
   NASDAQ = 'NASDAQ',
   BATS = 'BATS',
   C2 = 'C2',
-  AUTO = 'AUTO',
+  Auto = 'AUTO',
 }
 
 export enum OrderPriceLinkBasis {
@@ -169,14 +170,11 @@ export enum OrderExecutionType {
   Fill = 'FILL',
 }
 
-export interface Order {
+export interface OrderData {
   session: OrderSession;
   duration: OrderDuration;
   orderType: OrderType;
-  cancelTime: {
-    date: string;
-    shortFormat: boolean;
-  };
+  cancelTime: OrderCancelTime;
   complexOrderStrategyType: ComplexOrderStrategyType;
   quantity: number;
   filledQuantity: number;
@@ -207,8 +205,13 @@ export interface Order {
   accountId: number;
   orderActivityCollection: OrderExecution[];
   replacingOrderCollection: OrderExecution[];
-  childOrderStrategies: Order[];
+  childOrderStrategies: OrderData[];
   statusDescription: string;
+}
+
+export interface OrderCancelTime {
+  date: string;
+  shortFormat: boolean;
 }
 
 export interface OrderLegCollection {
@@ -235,4 +238,246 @@ export interface OrderExecutionLeg {
   mismarkedQuantity: number;
   price: number;
   time: string;
+}
+
+export interface GetOrdersOptions {
+  accountId?: number;
+  maxResults?: number;
+  fromEnteredTime: string;
+  toEnteredTime: string;
+  status?: OrderStatus;
+}
+
+export class OrderClient {
+  constructor(private client: Client) {}
+
+  async cancelOrder(accountId: number, orderId: number) {
+    await this.client.delete(`accounts/${accountId}/orders/${orderId}`);
+  }
+
+  async getOrder(accountId: number, orderId: number) {
+    const response = await this.client.get<OrderData>(
+      `accounts/${accountId}/orders/${orderId}`
+    );
+
+    return response.data;
+  }
+
+  async getOrders(options: GetOrdersOptions) {
+    const path = options.accountId
+      ? `accounts/${options.accountId}/orders`
+      : 'orders';
+
+    const response = await this.client.get<OrderData[]>(path, {
+      maxResults: options.maxResults || '',
+      fromEnteredTime: options.fromEnteredTime,
+      toEnteredTime: options.toEnteredTime,
+      status: options.status || '',
+    });
+
+    return response.data;
+  }
+
+  async placeOrder(accountId: number, order: Partial<OrderData>) {
+    const response = await this.client.post<OrderData>(
+      `accounts/${accountId}/orders`,
+      order
+    );
+
+    return response.data;
+  }
+
+  async replaceOrder(
+    accountId: number,
+    orderId: number,
+    order: Partial<OrderData>
+  ) {
+    const response = await this.client.post<OrderData>(
+      `accounts/${accountId}/orders/${orderId}`,
+      order
+    );
+
+    return response.data;
+  }
+}
+
+export class Order {
+  constructor(protected data: OrderData, private orderClient: OrderClient) {}
+
+  get session() {
+    return this.data.session;
+  }
+
+  get duration() {
+    return this.data.duration;
+  }
+
+  get orderType() {
+    return this.data.orderType;
+  }
+
+  get cancelTime() {
+    return this.data.cancelTime;
+  }
+
+  get complexOrderStrategyType() {
+    return this.data.complexOrderStrategyType;
+  }
+
+  get quantity() {
+    return this.data.quantity;
+  }
+
+  get filledQuantity() {
+    return this.data.filledQuantity;
+  }
+
+  get remainingQuantity() {
+    return this.data.remainingQuantity;
+  }
+
+  get requestedDestination() {
+    return this.data.requestedDestination;
+  }
+
+  get destinationLinkName() {
+    return this.data.destinationLinkName;
+  }
+
+  get releaseTime() {
+    return this.data.releaseTime;
+  }
+
+  get stopPrice() {
+    return this.data.stopPrice;
+  }
+
+  get stopPriceLinkBasis() {
+    return this.data.stopPriceLinkBasis;
+  }
+
+  get stopPriceLinkType() {
+    return this.data.stopPriceLinkType;
+  }
+
+  get stopPriceOffset() {
+    return this.data.stopPriceOffset;
+  }
+
+  get stopType() {
+    return this.data.stopType;
+  }
+
+  get priceLinkBasis() {
+    return this.data.priceLinkBasis;
+  }
+
+  get priceLinkType() {
+    return this.data.priceLinkType;
+  }
+
+  get price() {
+    return this.data.price;
+  }
+
+  get taxLotMethod() {
+    return this.data.taxLotMethod;
+  }
+
+  get orderLegCollection() {
+    return this.data.orderLegCollection;
+  }
+
+  get activationPrice() {
+    return this.data.activationPrice;
+  }
+
+  get specialInstruction() {
+    return this.data.specialInstruction;
+  }
+
+  get orderStrategyType() {
+    return this.data.orderStrategyType;
+  }
+
+  get orderId() {
+    return this.data.orderId;
+  }
+
+  get cancelable() {
+    return this.data.cancelable;
+  }
+
+  get editable() {
+    return this.data.editable;
+  }
+
+  get status() {
+    return this.data.status;
+  }
+
+  get enteredTime() {
+    return this.data.enteredTime;
+  }
+
+  get closeTime() {
+    return this.data.closeTime;
+  }
+
+  get tag() {
+    return this.data.tag;
+  }
+
+  get accountId() {
+    return this.data.accountId;
+  }
+
+  get orderActivityCollection() {
+    return this.data.orderActivityCollection;
+  }
+
+  get replacingOrderCollection() {
+    return this.data.replacingOrderCollection;
+  }
+
+  get childOrderStrategies() {
+    return this.data.childOrderStrategies;
+  }
+
+  get statusDescription() {
+    return this.data.statusDescription;
+  }
+
+  toJson() {
+    return { ...this.data };
+  }
+
+  async cancel() {
+    await this.orderClient.cancelOrder(this.accountId, this.orderId);
+  }
+
+  async replace(order: Partial<OrderData>) {
+    const data = await this.orderClient.replaceOrder(
+      this.accountId,
+      this.orderId,
+      order
+    );
+
+    return createOrderInstance(data, this.orderClient);
+  }
+
+  async refresh() {
+    this.data = await this.orderClient.getOrder(this.accountId, this.orderId);
+  }
+}
+
+export function createOrderInstance(data: OrderData, orderClient: OrderClient) {
+  return new Order(data, orderClient);
+}
+
+export function createOrderInstances(
+  data: OrderData[],
+  orderClient: OrderClient
+) {
+  return data.map((data) => new Order(data, orderClient));
 }

@@ -3,12 +3,11 @@ export enum WatchlistAssetType {
   Option = 'OPTION',
   MutualFund = 'MUTUAL_FUND',
   FixedIncome = 'FIXED_INCOME',
-  Index = 'INDEX'
+  Index = 'INDEX',
 }
 
 export interface WatchList {
   name: string;
-
 }
 
 export interface WatchListItem {

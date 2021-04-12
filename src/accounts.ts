@@ -1,74 +1,303 @@
-import { Instrument } from './instruments';
-import { Order } from './orders';
+import {
+  CashAccountCurrentBalance,
+  CashAccountInitialBalance,
+  CashAccountProjectedBalance,
+  MarginAccountCurrentBalance,
+  MarginAccountInitialBalance,
+  MarginAccountProjectedBalance,
+} from './balances';
+import { Client } from './client';
+import {
+  createOrderInstance,
+  createOrderInstances,
+  GetOrdersOptions,
+  Order,
+  OrderClient,
+  OrderData,
+} from './orders';
+import { Position } from './positions';
+import {
+  createSavedOrderInstance,
+  createSavedOrderInstances,
+  SavedOrderClient,
+} from './saved-orders';
 
 export enum AccountType {
   Cash = 'CASH',
   Margin = 'MARGIN',
 }
 
-export interface Account {
+interface BaseAccountData {
   type: AccountType;
-  accountId: string;
+  accountId: number;
   roundTrips: number;
   isDayTrader: boolean;
   isClosingOnlyRestricted: boolean;
   positions?: Position[];
   orderStrategies?: Order[];
-  initialBalances: Balance;
-  currentBalances: Balance;
-  projectedBalances: Balance;
 }
 
-export interface Position {
-  shortQuantity: number;
-  averagePrice: number;
-  currentDayProfitLoss: number;
-  currentDayProfitLossPercentage: number;
-  longQuantity: number;
-  settledLongQuantity: number;
-  settledShortQuantity: number;
-  agedQuantity: number;
-  instrument: Instrument;
-  marketValue: number;
+interface MarginAccountData extends BaseAccountData {
+  type: AccountType.Margin;
+  initialBalances: MarginAccountInitialBalance[];
+  currentBalances: MarginAccountCurrentBalance[];
+  projectedBalances: MarginAccountProjectedBalance[];
 }
 
-export interface Balance {
-  accountValue: number;
-  accruedInterest: number;
-  availableFundsNonMarginableTrade: number;
-  bondValue: number;
-  buyingPower: number;
-  buyingPowerNonMarginableTrade: number;
-  cashAvailableForTrading: number;
-  cashAvailableForWithdrawal: number;
-  cashBalance: number;
-  cashDebitCallValue: number;
-  cashReceipts: number;
-  dayTradingBuyingPower: number;
-  dayTradingBuyingPowerCall: number;
-  dayTradingEquityCall: number;
-  equity: number;
-  equityPercentage: number;
-  liquidationValue: number;
-  longMarginValue: number;
-  longOptionMarketValue: number;
-  longStockValue: number;
-  maintenanceCall: number;
-  maintenanceRequirement: number;
-  margin: number;
-  marginBalance: number;
-  marginEquity: number;
-  moneyMarketFund: number;
-  mutualFundValue: number;
-  pendingDeposits: number;
-  regTCall: number;
-  savings: number;
-  shortBalance: number;
-  shortMarginValue: number;
-  shortOptionMarketValue: number;
-  shortStockValue: number;
-  sma: number;
-  totalCash: number;
-  isInCall: boolean;
-  unsettledCash: number;
+interface CashAccountData extends BaseAccountData {
+  type: AccountType.Cash;
+  initialBalances: CashAccountInitialBalance[];
+  currentBalances: CashAccountCurrentBalance[];
+  projectedBalances: CashAccountProjectedBalance[];
+}
+
+export type AccountData = MarginAccountData | CashAccountData;
+
+export interface GetAccountOptions {
+  positions?: boolean;
+  orders?: boolean;
+}
+
+interface GetAccountResponse {
+  securitiesAccount: AccountData;
+}
+
+export class AccountClient {
+  constructor(private client: Client) {}
+
+  async getAccounts(options?: GetAccountOptions) {
+    const fields = [];
+    options?.positions && fields.push('positions');
+    options?.orders && fields.push('orders');
+
+    const response = await this.client.get<GetAccountResponse[]>('accounts', {
+      fields,
+    });
+
+    return response.data.map((data) => data.securitiesAccount);
+  }
+
+  async getAccount(accountId: number, options?: GetAccountOptions) {
+    const fields = [];
+    options?.positions && fields.push('positions');
+    options?.orders && fields.push('orders');
+
+    const response = await this.client.get<GetAccountResponse>(
+      `accounts/${accountId}`,
+      { fields }
+    );
+
+    return response.data.securitiesAccount;
+  }
+}
+
+abstract class BaseAccount {
+  constructor(
+    protected data: AccountData,
+    protected accountClient: AccountClient,
+    protected orderClient: OrderClient,
+    protected savedOrderClient: SavedOrderClient
+  ) {}
+
+  get type() {
+    return this.data.type;
+  }
+
+  get accountId() {
+    return this.data.accountId;
+  }
+
+  get roundTrips() {
+    return this.data.roundTrips;
+  }
+
+  get isDayTrader() {
+    return this.data.isDayTrader;
+  }
+
+  get isClosingOnlyRestricted() {
+    return this.data.isClosingOnlyRestricted;
+  }
+
+  get positions() {
+    return this.data.positions;
+  }
+
+  get orders() {
+    return this.data.orderStrategies;
+  }
+
+  toJson() {
+    return { ...this.data } as AccountData;
+  }
+
+  async cancelOrder(orderId: number) {
+    await this.orderClient.cancelOrder(this.accountId, orderId);
+  }
+
+  async getOrder(orderId: number) {
+    const data = await this.orderClient.getOrder(this.accountId, orderId);
+    return createOrderInstance(data, this.orderClient);
+  }
+
+  async getOrders(options: Omit<GetOrdersOptions, 'accountId'>) {
+    const data = await this.orderClient.getOrders({
+      accountId: this.accountId,
+      ...options,
+    });
+    return createOrderInstances(data, this.orderClient);
+  }
+
+  async placeOrder(order: Partial<OrderData>) {
+    const data = await this.orderClient.placeOrder(this.accountId, order);
+    return createOrderInstance(data, this.orderClient);
+  }
+
+  async replaceOrder(orderId: number, order: Partial<OrderData>) {
+    const data = await this.orderClient.replaceOrder(
+      this.accountId,
+      orderId,
+      order
+    );
+    return createOrderInstance(data, this.orderClient);
+  }
+
+  async createSavedOrder(order: Partial<OrderData>) {
+    const data = await this.savedOrderClient.createSavedOrder(
+      this.accountId,
+      order
+    );
+
+    return createSavedOrderInstance(
+      data,
+      this.orderClient,
+      this.savedOrderClient
+    );
+  }
+
+  async deleteSavedOrder(savedOrderId: number) {
+    await this.savedOrderClient.deleteSavedOrder(this.accountId, savedOrderId);
+  }
+
+  async getSavedOrder(savedOrderId: number) {
+    const data = await this.savedOrderClient.getSavedOrder(
+      this.accountId,
+      savedOrderId
+    );
+
+    return createSavedOrderInstance(
+      data,
+      this.orderClient,
+      this.savedOrderClient
+    );
+  }
+
+  async getSavedOrders() {
+    const data = await this.savedOrderClient.getSavedOrders(this.accountId);
+
+    return createSavedOrderInstances(
+      data,
+      this.orderClient,
+      this.savedOrderClient
+    );
+  }
+
+  async replaceSavedOrder(savedOrderId: number, order: Partial<OrderData>) {
+    const data = await this.savedOrderClient.replaceSavedOrder(
+      this.accountId,
+      savedOrderId,
+      order
+    );
+
+    return createSavedOrderInstance(
+      data,
+      this.orderClient,
+      this.savedOrderClient
+    );
+  }
+
+  async refresh() {
+    this.data = await this.accountClient.getAccount(this.accountId, {
+      positions: this.positions != null,
+      orders: this.orders != null,
+    });
+  }
+}
+
+export class MarginAccount extends BaseAccount {
+  constructor(
+    protected data: MarginAccountData,
+    accountClient: AccountClient,
+    orderClient: OrderClient,
+    savedOrderClient: SavedOrderClient
+  ) {
+    super(data, accountClient, orderClient, savedOrderClient);
+  }
+
+  get initialBalances() {
+    return this.data.initialBalances;
+  }
+
+  get currentBalances() {
+    return this.data.currentBalances;
+  }
+
+  get projectedBalances() {
+    return this.data.projectedBalances;
+  }
+
+  toJson() {
+    return { ...this.data } as MarginAccountData;
+  }
+}
+
+export class CashAccount extends BaseAccount {
+  constructor(
+    protected data: CashAccountData,
+    accountClient: AccountClient,
+    orderClient: OrderClient,
+    savedOrderClient: SavedOrderClient
+  ) {
+    super(data, accountClient, orderClient, savedOrderClient);
+  }
+
+  get initialBalances() {
+    return this.data.initialBalances;
+  }
+
+  get currentBalances() {
+    return this.data.currentBalances;
+  }
+
+  get projectedBalances() {
+    return this.data.projectedBalances;
+  }
+
+  toJson() {
+    return { ...this.data } as CashAccountData;
+  }
+}
+
+export type Account = MarginAccount | CashAccount;
+
+export function createAccountInstance(
+  data: AccountData,
+  accountClient: AccountClient,
+  orderClient: OrderClient,
+  savedOrderClient
+) {
+  return data.type === AccountType.Margin
+    ? new MarginAccount(data, accountClient, orderClient, savedOrderClient)
+    : new CashAccount(data, accountClient, orderClient, savedOrderClient);
+}
+
+export function createAccountInstances(
+  data: AccountData[],
+  accountClient: AccountClient,
+  orderClient: OrderClient,
+  savedOrderClient: SavedOrderClient
+) {
+  return data.map((data) =>
+    createAccountInstance(data, accountClient, orderClient, savedOrderClient)
+  );
 }

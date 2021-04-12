@@ -33,7 +33,7 @@ export enum OptionPutCall {
   Put = 'PUT',
 }
 
-export interface Instrument {
+export interface BaseInstrument {
   assetType: AssetType;
   cusip: string;
   symbol: string;
@@ -41,28 +41,28 @@ export interface Instrument {
   fundamental?: FundamentalData;
 }
 
-export interface EquityInstrument extends Instrument {
+export interface EquityInstrument extends BaseInstrument {
   assetType: AssetType.Equity;
 }
 
-export interface FixedIncomeInstrument extends Instrument {
+export interface FixedIncomeInstrument extends BaseInstrument {
   assetType: AssetType.FixedIncome;
   maturityDate: string;
   variableRate: number;
   factor: number;
 }
 
-export interface MututalFundInstrument extends Instrument {
+export interface MututalFundInstrument extends BaseInstrument {
   assetType: AssetType.MutualFund;
   type: MutualFundType;
 }
 
-export interface CashEquivalentInstrument extends Instrument {
+export interface CashEquivalentInstrument extends BaseInstrument {
   assetType: AssetType.CashEquivalent;
   type: CashEquivalentType;
 }
 
-export interface OptionInstrument extends Instrument {
+export interface OptionInstrument extends BaseInstrument {
   assetType: AssetType.Option;
   type: OptionType;
   putCall: OptionPutCall;
@@ -70,6 +70,13 @@ export interface OptionInstrument extends Instrument {
   optionMultiplier: number;
   optionDeliverables: OptionDeliverable[];
 }
+
+export type Instrument =
+  | EquityInstrument
+  | FixedIncomeInstrument
+  | MututalFundInstrument
+  | CashEquivalentInstrument
+  | OptionInstrument;
 
 export interface FundamentalData {
   symbol: string;
