@@ -8,6 +8,18 @@ import { Client } from './client';
 import { Config, TDAmeritradeConfig } from './config';
 import { EventEmitter, TDAmeritradeEvent } from './events';
 import {
+  createInstrumentInstance,
+  createInstrumentInstances,
+  InstrumentClient,
+  SearchInstrumentOptions,
+} from './instruments';
+import {
+  createMarketHoursInstance,
+  createMarketHoursInstances,
+  MarketHoursClient,
+  MarketType,
+} from './market-hours';
+import {
   createOrderInstance,
   createOrderInstances,
   GetOrdersOptions,
@@ -28,6 +40,8 @@ export class TDAmeritrade {
   private accountClient: AccountClient;
   private orderClient: OrderClient;
   private savedOrderClient: SavedOrderClient;
+  private instrumentClient: InstrumentClient;
+  private marketHoursClient: MarketHoursClient;
 
   constructor(config: TDAmeritradeConfig) {
     this.emitter = new EventEmitter();
@@ -37,6 +51,8 @@ export class TDAmeritrade {
     this.accountClient = new AccountClient(this.client);
     this.orderClient = new OrderClient(this.client);
     this.savedOrderClient = new SavedOrderClient(this.client);
+    this.instrumentClient = new InstrumentClient(this.client);
+    this.marketHoursClient = new MarketHoursClient(this.client);
   }
 
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
@@ -144,4 +160,39 @@ export class TDAmeritrade {
       this.savedOrderClient
     );
   }
+
+  // Instruments
+
+  async searchInstruments(options: SearchInstrumentOptions) {
+    const data = await this.instrumentClient.searchInstruments(options);
+    return createInstrumentInstances(data, this.instrumentClient);
+  }
+
+  async getInstrument(cusip: string) {
+    const data = await this.instrumentClient.getInstrument(cusip);
+    return createInstrumentInstance(data, this.instrumentClient);
+  }
+
+  // Market Hours
+
+  async getMarketHours(markets: MarketType | MarketType[], date: string) {
+    const data = await this.marketHoursClient.getHours(markets, date);
+    return Array.isArray(data)
+      ? createMarketHoursInstances(data, this.marketHoursClient)
+      : createMarketHoursInstance(data, this.marketHoursClient);
+  }
+
+  // Movers
+
+  // Option Chains
+
+  // Price History
+
+  // Quotes
+
+  // Transactions
+
+  // User Info
+
+  // Watchlists
 }

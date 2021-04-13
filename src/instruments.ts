@@ -1,3 +1,5 @@
+import { Client } from './client';
+
 export enum AssetType {
   Equity = 'EQUITY',
   Etf = 'ETF',
@@ -71,7 +73,7 @@ export interface OptionInstrument extends BaseInstrument {
   optionDeliverables: OptionDeliverable[];
 }
 
-export type Instrument =
+export type InstrumentData =
   | EquityInstrument
   | FixedIncomeInstrument
   | MututalFundInstrument
@@ -132,4 +134,87 @@ export interface OptionDeliverable {
   deliverableUnits: number;
   currentType: 'USD' | 'CAD' | 'EUR' | 'JPY';
   assetType: AssetType;
+}
+
+export enum SearchInstrumentProjection {
+  SymbolSearch = 'symbol-search',
+  SymbolRegex = 'symbol-regex',
+  DescSearch = 'desc-search',
+  DescRegex = 'desc-regex',
+  Fundamental = 'fundamental',
+}
+
+export interface SearchInstrumentOptions {
+  symbol: string;
+  projection: SearchInstrumentProjection;
+}
+
+export class InstrumentClient {
+  constructor(private client: Client) {}
+
+  async searchInstruments(options: SearchInstrumentOptions) {
+    const response = await this.client.get<InstrumentData[]>(
+      'options',
+      options
+    );
+
+    return response.data;
+  }
+
+  async getInstrument(cusip: string) {
+    const response = await this.client.get<InstrumentData>(
+      `instruments/${cusip}`
+    );
+
+    return response.data;
+  }
+}
+
+export class Instrument {
+  constructor(
+    protected data: InstrumentData,
+    private instrumentClient: InstrumentClient
+  ) {}
+
+  get assetType() {
+    return this.data.assetType;
+  }
+
+  get cusip() {
+    return this.data.cusip;
+  }
+
+  get symbol() {
+    return this.data.symbol;
+  }
+
+  get description() {
+    return this.data.description;
+  }
+
+  get fundamental() {
+    return this.data.fundamental;
+  }
+
+  toJson() {
+    return { ...this.data } as InstrumentData;
+  }
+
+  async refresh() {
+    this.data = await this.instrumentClient.getInstrument(this.cusip);
+  }
+}
+
+export function createInstrumentInstance(
+  data: InstrumentData,
+  instrumentClient: InstrumentClient
+) {
+  return new Instrument(data, instrumentClient);
+}
+
+export function createInstrumentInstances(
+  data: InstrumentData[],
+  instrumentClient: InstrumentClient
+) {
+  return data.map((data) => new Instrument(data, instrumentClient));
 }
