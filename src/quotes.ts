@@ -1,6 +1,6 @@
-export interface Quote {}
+export interface BaseQuoteData {}
 
-export interface MutualFundQuote extends Quote {
+export interface MutualFundQuoteData extends BaseQuoteData {
   symbol: string;
   description: string;
   closePrice: number;
@@ -20,7 +20,7 @@ export interface MutualFundQuote extends Quote {
   securityStatus: string;
 }
 
-export interface FutureQuote extends Quote {
+export interface FutureQuoteData extends BaseQuoteData {
   symbol: string;
   bidPriceInDouble: number;
   askPriceInDouble: number;
@@ -53,7 +53,7 @@ export interface FutureQuote extends Quote {
   futureExpirationDate: string;
 }
 
-export interface FutureOptionQuote extends Quote {
+export interface FutureOptionQuoteData extends BaseQuoteData {
   symbol: string;
   bidPriceInDouble: number;
   askPriceInDouble: number;
@@ -93,7 +93,7 @@ export interface FutureOptionQuote extends Quote {
   inTheMoney: boolean;
 }
 
-export interface IndexQuote extends Quote {
+export interface IndexQuoteData extends BaseQuoteData {
   symbol: string;
   description: string;
   lastPrice: number;
@@ -112,7 +112,7 @@ export interface IndexQuote extends Quote {
   securityStatus: string;
 }
 
-export interface OptionQuote extends Quote {
+export interface OptionQuoteData extends BaseQuoteData {
   symbol: string;
   description: string;
   bidPrice: number;
@@ -152,7 +152,7 @@ export interface OptionQuote extends Quote {
   settlementType: string;
 }
 
-export interface ForexQuote extends Quote {
+export interface ForexQuoteData extends BaseQuoteData {
   symbol: string;
   bidPriceInDouble: number;
   askPriceInDouble: number;
@@ -178,7 +178,7 @@ export interface ForexQuote extends Quote {
   mark: number;
 }
 
-export interface EtfQuote extends Quote {
+export interface EtfQuoteData extends BaseQuoteData {
   symbol: string;
   description: string;
   bidPrice: number;
@@ -218,7 +218,7 @@ export interface EtfQuote extends Quote {
   regularMarketTradeTimeInLong: number;
 }
 
-export interface EquityQuote extends Quote {
+export interface EquityQuoteData extends BaseQuoteData {
   symbol: string;
   description: string;
   bidPrice: number;
@@ -257,3 +257,7 @@ export interface EquityQuote extends Quote {
   regularMarketNetChange: number;
   regularMarketTradeTimeInLong: number;
 }
+
+export class QuoteClient {}
+
+export class Quote {}

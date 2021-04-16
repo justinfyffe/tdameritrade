@@ -19,6 +19,12 @@ import {
   MarketHoursClient,
   MarketType,
 } from './market-hours';
+import { GetMoversOptions, MoverClient } from './movers';
+import {
+  createOptionChainInstance,
+  GetOptionChainOptions,
+  OptionChainClient,
+} from './option-chains';
 import {
   createOrderInstance,
   createOrderInstances,
@@ -26,6 +32,7 @@ import {
   OrderClient,
   OrderData,
 } from './orders';
+import { GetPriceHistoryOptions, PriceHistoryClient } from './price-history';
 import {
   createSavedOrderInstance,
   createSavedOrderInstances,
@@ -42,6 +49,9 @@ export class TDAmeritrade {
   private savedOrderClient: SavedOrderClient;
   private instrumentClient: InstrumentClient;
   private marketHoursClient: MarketHoursClient;
+  private moverClient: MoverClient;
+  private optionChainClient: OptionChainClient;
+  private priceHistoryClient: PriceHistoryClient;
 
   constructor(config: TDAmeritradeConfig) {
     this.emitter = new EventEmitter();
@@ -53,6 +63,9 @@ export class TDAmeritrade {
     this.savedOrderClient = new SavedOrderClient(this.client);
     this.instrumentClient = new InstrumentClient(this.client);
     this.marketHoursClient = new MarketHoursClient(this.client);
+    this.moverClient = new MoverClient(this.client);
+    this.optionChainClient = new OptionChainClient(this.client);
+    this.priceHistoryClient = new PriceHistoryClient(this.client);
   }
 
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
@@ -184,9 +197,22 @@ export class TDAmeritrade {
 
   // Movers
 
+  async getMovers(index: string, options?: GetMoversOptions) {
+    return await this.moverClient.getMovers(index, options);
+  }
+
   // Option Chains
 
+  async getOptionChain(symbol: string, options?: GetOptionChainOptions) {
+    const data = await this.optionChainClient.getOptionChain(symbol, options);
+    return createOptionChainInstance(data, options, this.optionChainClient);
+  }
+
   // Price History
+
+  async getPriceHistory(symbol: string, options?: GetPriceHistoryOptions) {
+    return await this.priceHistoryClient.getPriceHistory(symbol, options);
+  }
 
   // Quotes
 

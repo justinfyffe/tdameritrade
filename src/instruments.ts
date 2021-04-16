@@ -154,7 +154,7 @@ export class InstrumentClient {
 
   async searchInstruments(options: SearchInstrumentOptions) {
     const response = await this.client.get<InstrumentData[]>(
-      'options',
+      'instruments',
       options
     );
 
