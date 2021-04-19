@@ -34,11 +34,22 @@ import {
 } from './orders';
 import { GetPriceHistoryOptions, PriceHistoryClient } from './price-history';
 import {
+  createQuoteInstance,
+  createQuotesInstances,
+  QuoteClient,
+} from './quotes';
+import {
   createSavedOrderInstance,
   createSavedOrderInstances,
   SavedOrderClient,
   SavedOrderData,
 } from './saved-orders';
+import {
+  createTransactionInstance,
+  createTransactionInstances,
+  GetTransactionsOptions,
+  TransactionClient,
+} from './transactions';
 
 export class TDAmeritrade {
   private emitter: EventEmitter;
@@ -52,6 +63,8 @@ export class TDAmeritrade {
   private moverClient: MoverClient;
   private optionChainClient: OptionChainClient;
   private priceHistoryClient: PriceHistoryClient;
+  private quoteClient: QuoteClient;
+  private transactionClient: TransactionClient;
 
   constructor(config: TDAmeritradeConfig) {
     this.emitter = new EventEmitter();
@@ -66,6 +79,7 @@ export class TDAmeritrade {
     this.moverClient = new MoverClient(this.client);
     this.optionChainClient = new OptionChainClient(this.client);
     this.priceHistoryClient = new PriceHistoryClient(this.client);
+    this.quoteClient = new QuoteClient(this.client);
   }
 
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
@@ -81,7 +95,8 @@ export class TDAmeritrade {
       data,
       this.accountClient,
       this.orderClient,
-      this.savedOrderClient
+      this.savedOrderClient,
+      this.transactionClient
     );
   }
 
@@ -91,7 +106,8 @@ export class TDAmeritrade {
       data,
       this.accountClient,
       this.orderClient,
-      this.savedOrderClient
+      this.savedOrderClient,
+      this.transactionClient
     );
   }
 
@@ -216,7 +232,33 @@ export class TDAmeritrade {
 
   // Quotes
 
+  async getQuote(symbol: string) {
+    const data = await this.quoteClient.getQuote(symbol);
+    return createQuoteInstance(data, this.quoteClient);
+  }
+
+  async getQuotes(symbols: string[]) {
+    const data = await this.quoteClient.getQuotes(symbols);
+    return createQuotesInstances(data, this.quoteClient);
+  }
+
   // Transactions
+
+  async getTransaction(accountId: number, transactionId: number) {
+    const data = await this.transactionClient.getTransaction(
+      accountId,
+      transactionId
+    );
+    return createTransactionInstance(data, this.transactionClient);
+  }
+
+  async getTransactions(accountId: number, options?: GetTransactionsOptions) {
+    const data = await this.transactionClient.getTransactions(
+      accountId,
+      options
+    );
+    return createTransactionInstances(data, this.transactionClient);
+  }
 
   // User Info
 

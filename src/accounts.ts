@@ -21,6 +21,12 @@ import {
   createSavedOrderInstances,
   SavedOrderClient,
 } from './saved-orders';
+import {
+  createTransactionInstance,
+  createTransactionInstances,
+  GetTransactionsOptions,
+  TransactionClient,
+} from './transactions';
 
 export enum AccountType {
   Cash = 'CASH',
@@ -96,7 +102,8 @@ abstract class BaseAccount {
     protected data: AccountData,
     protected accountClient: AccountClient,
     protected orderClient: OrderClient,
-    protected savedOrderClient: SavedOrderClient
+    protected savedOrderClient: SavedOrderClient,
+    protected transactionClient: TransactionClient
   ) {}
 
   get type() {
@@ -216,6 +223,24 @@ abstract class BaseAccount {
     );
   }
 
+  async getTransaction(transactionId: number) {
+    const data = await this.transactionClient.getTransaction(
+      this.accountId,
+      transactionId
+    );
+
+    return createTransactionInstance(data, this.transactionClient);
+  }
+
+  async getTransactions(options?: GetTransactionsOptions) {
+    const data = await this.transactionClient.getTransactions(
+      this.accountId,
+      options
+    );
+
+    return createTransactionInstances(data, this.transactionClient);
+  }
+
   async refresh() {
     this.data = await this.accountClient.getAccount(this.accountId, {
       positions: this.positions != null,
@@ -229,9 +254,16 @@ export class MarginAccount extends BaseAccount {
     protected data: MarginAccountData,
     accountClient: AccountClient,
     orderClient: OrderClient,
-    savedOrderClient: SavedOrderClient
+    savedOrderClient: SavedOrderClient,
+    transactionClient: TransactionClient
   ) {
-    super(data, accountClient, orderClient, savedOrderClient);
+    super(
+      data,
+      accountClient,
+      orderClient,
+      savedOrderClient,
+      transactionClient
+    );
   }
 
   get initialBalances() {
@@ -256,9 +288,16 @@ export class CashAccount extends BaseAccount {
     protected data: CashAccountData,
     accountClient: AccountClient,
     orderClient: OrderClient,
-    savedOrderClient: SavedOrderClient
+    savedOrderClient: SavedOrderClient,
+    transactionClient: TransactionClient
   ) {
-    super(data, accountClient, orderClient, savedOrderClient);
+    super(
+      data,
+      accountClient,
+      orderClient,
+      savedOrderClient,
+      transactionClient
+    );
   }
 
   get initialBalances() {
@@ -284,20 +323,40 @@ export function createAccountInstance(
   data: AccountData,
   accountClient: AccountClient,
   orderClient: OrderClient,
-  savedOrderClient
+  savedOrderClient: SavedOrderClient,
+  transactionClient: TransactionClient
 ) {
   return data.type === AccountType.Margin
-    ? new MarginAccount(data, accountClient, orderClient, savedOrderClient)
-    : new CashAccount(data, accountClient, orderClient, savedOrderClient);
+    ? new MarginAccount(
+        data,
+        accountClient,
+        orderClient,
+        savedOrderClient,
+        transactionClient
+      )
+    : new CashAccount(
+        data,
+        accountClient,
+        orderClient,
+        savedOrderClient,
+        transactionClient
+      );
 }
 
 export function createAccountInstances(
   data: AccountData[],
   accountClient: AccountClient,
   orderClient: OrderClient,
-  savedOrderClient: SavedOrderClient
+  savedOrderClient: SavedOrderClient,
+  transactionClient: TransactionClient
 ) {
   return data.map((data) =>
-    createAccountInstance(data, accountClient, orderClient, savedOrderClient)
+    createAccountInstance(
+      data,
+      accountClient,
+      orderClient,
+      savedOrderClient,
+      transactionClient
+    )
   );
 }
