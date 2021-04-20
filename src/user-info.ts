@@ -1,3 +1,5 @@
+import { Client } from './client';
+
 export enum EquityOrderLegInstruction {
   Buy = 'BUY',
   Sell = 'SELL',
@@ -76,6 +78,13 @@ export enum OptionTradingLevel {
   None = 'NONE',
 }
 
+export enum UserPrincipalField {
+  StreamerSubscriptionKeys = 'streamerSubscriptionKeys',
+  StreamerConnectionInfo = 'streamerConnectionInfo',
+  Preferences = 'preferences',
+  SurrogateIds = 'surrogateIds',
+}
+
 export interface Preferences {
   expressTrading: boolean;
   directOptionsRouting: boolean;
@@ -113,6 +122,9 @@ export interface UserPrincipal {
   stalePassword: boolean;
   streamerInfo: StreamerInfo;
   professionalStatus: ProfessionalStatus;
+  quotes: Quotes;
+  streamerSubscriptionKeys: SubscriptionKeys;
+  accounts: Account[];
 }
 
 export interface StreamerInfo {
@@ -161,4 +173,36 @@ export interface Authorizations {
   streamerAccess: boolean;
   advancedMargin: boolean;
   scottradeAccount: boolean;
+}
+
+export class UserInfoClient {
+  constructor(private client: Client) {}
+
+  async getPreferences(accountId: number) {
+    const response = await this.client.get<Preferences>(
+      `accounts/${accountId}/preferences`
+    );
+
+    return response.data;
+  }
+
+  async updatePreferences(accountId: number, preferences: Preferences) {
+    await this.client.put(`accounts/${accountId}/preferences`, preferences);
+  }
+
+  async getStreamerSubscriptionKeys(accountIds: number[]) {
+    const response = await this.client.get<SubscriptionKeys>(
+      'userprincipals/streamersubscriptionkeys',
+      { accountIds: accountIds.join(',') }
+    );
+
+    return response.data;
+  }
+
+  async getUserPrincipals(fields: UserPrincipalField[] = []) {
+    const response = await this.client.get<UserPrincipal>('userprincipals', {
+      fields: fields.join(','),
+    });
+    return response.data;
+  }
 }

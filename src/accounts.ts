@@ -27,6 +27,14 @@ import {
   GetTransactionsOptions,
   TransactionClient,
 } from './transactions';
+import { Preferences, UserInfoClient } from './user-info';
+import {
+  createWatchlistInstance,
+  createWatchlistInstances,
+  CreateWatchlistRequest,
+  UpdateWatchlistRequest,
+  WatchlistClient,
+} from './watchlists';
 
 export enum AccountType {
   Cash = 'CASH',
@@ -103,7 +111,9 @@ abstract class BaseAccount {
     protected accountClient: AccountClient,
     protected orderClient: OrderClient,
     protected savedOrderClient: SavedOrderClient,
-    protected transactionClient: TransactionClient
+    protected transactionClient: TransactionClient,
+    protected userInfoClient: UserInfoClient,
+    protected watchlistClient: WatchlistClient
   ) {}
 
   get type() {
@@ -241,6 +251,47 @@ abstract class BaseAccount {
     return createTransactionInstances(data, this.transactionClient);
   }
 
+  async getPreferences() {
+    return await this.userInfoClient.getPreferences(this.accountId);
+  }
+
+  async updatePreferences(accountId: number, preferences: Preferences) {
+    await this.userInfoClient.updatePreferences(this.accountId, preferences);
+  }
+
+  async createWatchlist(watchlist: CreateWatchlistRequest) {
+    await this.watchlistClient.createWatchlist(this.accountId, watchlist);
+  }
+
+  async deleteWatchlist(watchlistId: number) {
+    await this.watchlistClient.deleteWatchlist(this.accountId, watchlistId);
+  }
+
+  async getWatchlist(watchlistId: number) {
+    const data = await this.watchlistClient.getWatchlist(
+      this.accountId,
+      watchlistId
+    );
+
+    return createWatchlistInstance(data, this.watchlistClient);
+  }
+
+  async getWatchlists() {
+    const data = await this.watchlistClient.getWatchlists(this.accountId);
+    return createWatchlistInstances(data, this.watchlistClient);
+  }
+
+  async replaceWatchlist(
+    watchlistId: number,
+    watchlist: UpdateWatchlistRequest
+  ) {
+    await this.watchlistClient.replaceWatchlist(
+      this.accountId,
+      watchlistId,
+      watchlist
+    );
+  }
+
   async refresh() {
     this.data = await this.accountClient.getAccount(this.accountId, {
       positions: this.positions != null,
@@ -255,14 +306,18 @@ export class MarginAccount extends BaseAccount {
     accountClient: AccountClient,
     orderClient: OrderClient,
     savedOrderClient: SavedOrderClient,
-    transactionClient: TransactionClient
+    transactionClient: TransactionClient,
+    userInfoClient: UserInfoClient,
+    watchlistClient: WatchlistClient
   ) {
     super(
       data,
       accountClient,
       orderClient,
       savedOrderClient,
-      transactionClient
+      transactionClient,
+      userInfoClient,
+      watchlistClient
     );
   }
 
@@ -289,14 +344,18 @@ export class CashAccount extends BaseAccount {
     accountClient: AccountClient,
     orderClient: OrderClient,
     savedOrderClient: SavedOrderClient,
-    transactionClient: TransactionClient
+    transactionClient: TransactionClient,
+    userInfoClient: UserInfoClient,
+    watchlistClient: WatchlistClient
   ) {
     super(
       data,
       accountClient,
       orderClient,
       savedOrderClient,
-      transactionClient
+      transactionClient,
+      userInfoClient,
+      watchlistClient
     );
   }
 
@@ -324,7 +383,9 @@ export function createAccountInstance(
   accountClient: AccountClient,
   orderClient: OrderClient,
   savedOrderClient: SavedOrderClient,
-  transactionClient: TransactionClient
+  transactionClient: TransactionClient,
+  userInfoClient: UserInfoClient,
+  watchlistClient: WatchlistClient
 ) {
   return data.type === AccountType.Margin
     ? new MarginAccount(
@@ -332,14 +393,18 @@ export function createAccountInstance(
         accountClient,
         orderClient,
         savedOrderClient,
-        transactionClient
+        transactionClient,
+        userInfoClient,
+        watchlistClient
       )
     : new CashAccount(
         data,
         accountClient,
         orderClient,
         savedOrderClient,
-        transactionClient
+        transactionClient,
+        userInfoClient,
+        watchlistClient
       );
 }
 
@@ -348,7 +413,9 @@ export function createAccountInstances(
   accountClient: AccountClient,
   orderClient: OrderClient,
   savedOrderClient: SavedOrderClient,
-  transactionClient: TransactionClient
+  transactionClient: TransactionClient,
+  userInfoClient: UserInfoClient,
+  watchlistClient: WatchlistClient
 ) {
   return data.map((data) =>
     createAccountInstance(
@@ -356,7 +423,9 @@ export function createAccountInstances(
       accountClient,
       orderClient,
       savedOrderClient,
-      transactionClient
+      transactionClient,
+      userInfoClient,
+      watchlistClient
     )
   );
 }

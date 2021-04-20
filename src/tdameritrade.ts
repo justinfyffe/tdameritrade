@@ -50,6 +50,14 @@ import {
   GetTransactionsOptions,
   TransactionClient,
 } from './transactions';
+import { Preferences, UserInfoClient, UserPrincipalField } from './user-info';
+import {
+  createWatchlistInstance,
+  createWatchlistInstances,
+  CreateWatchlistRequest,
+  UpdateWatchlistRequest,
+  WatchlistClient,
+} from './watchlists';
 
 export class TDAmeritrade {
   private emitter: EventEmitter;
@@ -65,6 +73,8 @@ export class TDAmeritrade {
   private priceHistoryClient: PriceHistoryClient;
   private quoteClient: QuoteClient;
   private transactionClient: TransactionClient;
+  private userInfoClient: UserInfoClient;
+  private watchlistClient: WatchlistClient;
 
   constructor(config: TDAmeritradeConfig) {
     this.emitter = new EventEmitter();
@@ -80,6 +90,8 @@ export class TDAmeritrade {
     this.optionChainClient = new OptionChainClient(this.client);
     this.priceHistoryClient = new PriceHistoryClient(this.client);
     this.quoteClient = new QuoteClient(this.client);
+    this.userInfoClient = new UserInfoClient(this.client);
+    this.watchlistClient = new WatchlistClient(this.client);
   }
 
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
@@ -96,7 +108,9 @@ export class TDAmeritrade {
       this.accountClient,
       this.orderClient,
       this.savedOrderClient,
-      this.transactionClient
+      this.transactionClient,
+      this.userInfoClient,
+      this.watchlistClient
     );
   }
 
@@ -107,7 +121,9 @@ export class TDAmeritrade {
       this.accountClient,
       this.orderClient,
       this.savedOrderClient,
-      this.transactionClient
+      this.transactionClient,
+      this.userInfoClient,
+      this.watchlistClient
     );
   }
 
@@ -262,5 +278,54 @@ export class TDAmeritrade {
 
   // User Info
 
+  async getPreferences(accountId: number) {
+    return await this.userInfoClient.getPreferences(accountId);
+  }
+
+  async updatePreferences(accountId: number, preferences: Preferences) {
+    await this.userInfoClient.updatePreferences(accountId, preferences);
+  }
+
+  async getStreamerSubscriptionKeys(accountIds: number[]) {
+    return await this.userInfoClient.getStreamerSubscriptionKeys(accountIds);
+  }
+
+  async getUserPrincipals(fields: UserPrincipalField[] = []) {
+    return await this.userInfoClient.getUserPrincipals(fields);
+  }
+
   // Watchlists
+
+  async createWatchlist(accountId: number, watchlist: CreateWatchlistRequest) {
+    await this.watchlistClient.createWatchlist(accountId, watchlist);
+  }
+
+  async deleteWatchlist(accountId: number, watchlistId: number) {
+    await this.watchlistClient.deleteWatchlist(accountId, watchlistId);
+  }
+
+  async getWatchlist(accountId: number, watchlistId: number) {
+    const data = await this.watchlistClient.getWatchlist(
+      accountId,
+      watchlistId
+    );
+    return createWatchlistInstance(data, this.watchlistClient);
+  }
+
+  async getWatchlists(accountId?: number) {
+    const data = await this.watchlistClient.getWatchlists(accountId);
+    return createWatchlistInstances(data, this.watchlistClient);
+  }
+
+  async replaceWatchlist(
+    accountId: number,
+    watchlistId: number,
+    watchlist: UpdateWatchlistRequest
+  ) {
+    await this.watchlistClient.replaceWatchlist(
+      accountId,
+      watchlistId,
+      watchlist
+    );
+  }
 }
