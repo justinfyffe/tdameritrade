@@ -1,4 +1,5 @@
-import { Client } from './client';
+import { apiGet } from './client';
+import { TDAmeritrade } from './tdameritrade';
 
 export enum AssetType {
   Equity = 'EQUITY',
@@ -35,7 +36,7 @@ export enum OptionPutCall {
   Put = 'PUT',
 }
 
-export interface BaseInstrument {
+interface BaseInstrument {
   assetType: AssetType;
   cusip: string;
   symbol: string;
@@ -73,7 +74,7 @@ export interface OptionInstrument extends BaseInstrument {
   optionDeliverables: OptionDeliverable[];
 }
 
-export type InstrumentData =
+export type Instrument =
   | EquityInstrument
   | FixedIncomeInstrument
   | MututalFundInstrument
@@ -144,77 +145,19 @@ export enum SearchInstrumentProjection {
   Fundamental = 'fundamental',
 }
 
-export interface SearchInstrumentOptions {
-  symbol: string;
-  projection: SearchInstrumentProjection;
-}
-
-export class InstrumentClient {
-  constructor(private client: Client) {}
-
-  async searchInstruments(options: SearchInstrumentOptions) {
-    const response = await this.client.get<InstrumentData[]>(
-      'instruments',
-      options
-    );
-
-    return response.data;
-  }
-
-  async getInstrument(cusip: string) {
-    const response = await this.client.get<InstrumentData>(
-      `instruments/${cusip}`
-    );
-
-    return response.data;
-  }
-}
-
-export class Instrument {
-  constructor(
-    protected data: InstrumentData,
-    private instrumentClient: InstrumentClient
-  ) {}
-
-  get assetType() {
-    return this.data.assetType;
-  }
-
-  get cusip() {
-    return this.data.cusip;
-  }
-
-  get symbol() {
-    return this.data.symbol;
-  }
-
-  get description() {
-    return this.data.description;
-  }
-
-  get fundamental() {
-    return this.data.fundamental;
-  }
-
-  toJson() {
-    return { ...this.data } as InstrumentData;
-  }
-
-  async refresh() {
-    this.data = await this.instrumentClient.getInstrument(this.cusip);
-  }
-}
-
-export function createInstrumentInstance(
-  data: InstrumentData,
-  instrumentClient: InstrumentClient
+export async function searchInstruments(
+  td: TDAmeritrade,
+  symbol: string,
+  projection: SearchInstrumentProjection
 ) {
-  return new Instrument(data, instrumentClient);
+  const response = await apiGet<Instrument[]>(td, 'instruments', {
+    symbol,
+    projection,
+  });
+  return response.data;
 }
 
-export function createInstrumentInstances(
-  data: InstrumentData[],
-  instrumentClient: InstrumentClient
-) {
-  return data.map((data) => new Instrument(data, instrumentClient));
+export async function getInstrument(td: TDAmeritrade, cusip: string) {
+  const response = await apiGet<Instrument>(td, `instruments/${cusip}`);
+  return response.data;
 }

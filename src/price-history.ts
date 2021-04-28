@@ -1,4 +1,5 @@
-import { Client } from './client';
+import { apiGet } from './client';
+import { TDAmeritrade } from './tdameritrade';
 
 export interface Candle {
   close: number;
@@ -25,15 +26,16 @@ export interface GetPriceHistoryOptions {
   needExtendedHoursData?: boolean;
 }
 
-export class PriceHistoryClient {
-  constructor(private client: Client) {}
+export async function getPriceHistory(
+  td: TDAmeritrade,
+  symbol: string,
+  options?: GetPriceHistoryOptions
+) {
+  const response = await apiGet<CandleList>(
+    td,
+    `marketdata/${symbol}/pricehistory`,
+    options
+  );
 
-  async getPriceHistory(symbol: string, options?: GetPriceHistoryOptions) {
-    const response = await this.client.get<CandleList>(
-      `marketdata/${symbol}/pricehistory`,
-      options
-    );
-
-    return response.data;
-  }
+  return response.data;
 }

@@ -1,51 +1,54 @@
-import axios, { AxiosInstance } from 'axios';
 import * as querystring from 'querystring';
-import { Config } from './config';
-import { EventEmitter } from './events';
-import { OAuth } from './oauth';
+import { checkAccess } from './auth';
+import { TDAmeritrade } from './tdameritrade';
 
-export class Client {
-  private http: AxiosInstance;
-  private oauth: OAuth;
+export async function apiGet<T = unknown>(
+  td: TDAmeritrade,
+  path: string,
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  data?: any
+) {
+  const query = data != null ? `?${querystring.stringify(data)}` : '';
+  return await makeRequest<T>(td, 'get', `/${path}${query}`, null);
+}
 
-  constructor(private emitter: EventEmitter, private config: Config) {
-    this.http = axios.create({ baseURL: this.config.apiUrl });
-    this.oauth = new OAuth(this.http, this.emitter, this.config);
-  }
+export async function apiPost<T = unknown>(
+  td: TDAmeritrade,
+  path: string,
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  data?: any
+) {
+  return await makeRequest<T>(td, 'post', path, data);
+}
 
-  async get<T = unknown>(path: string, data?) {
-    const query = data != null ? `?${querystring.stringify(data)}` : '';
-    return await this.request<T>('get', `/${path}${query}`);
-  }
+export async function apiPut<T = unknown>(
+  td: TDAmeritrade,
+  path: string,
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  data?: any
+) {
+  return await makeRequest<T>(td, 'put', path, data);
+}
 
-  async post<T = unknown>(path: string, data?) {
-    return await this.request<T>('post', path, data);
-  }
+export async function apiDelete(td: TDAmeritrade, path: string) {
+  return await makeRequest(td, 'delete', path);
+}
 
-  async put<T = unknown>(path: string, data?) {
-    return await this.request<T>('put', path, data);
-  }
-
-  async delete(path: string) {
-    return await this.request('delete', path);
-  }
-
-  private async request<T>(
-    method: 'get' | 'post' | 'put' | 'delete',
-    path: string,
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    data?: any
-  ) {
-    await this.oauth.checkAccess();
-
-    return await this.http.request<T>({
-      method,
-      url: path,
-      data: querystring.stringify(data),
-      headers: {
-        Authorization: `Bearer ${this.config.accessToken}`,
-        Accept: 'application/json',
-      },
-    });
-  }
+export async function makeRequest<T>(
+  td: TDAmeritrade,
+  method: 'get' | 'post' | 'put' | 'delete',
+  path: string,
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  data?: any
+) {
+  await checkAccess(td);
+  return await td.axios.request<T>({
+    method,
+    url: path,
+    data: querystring.stringify(data),
+    headers: {
+      Authorization: `Bearer ${td.accessToken}`,
+      Accept: 'application/json',
+    },
+  });
 }

@@ -1,4 +1,5 @@
-import { Client } from './client';
+import { apiGet } from './client';
+import { TDAmeritrade } from './tdameritrade';
 
 export enum OptionStrategy {
   Single = 'SINGLE',
@@ -53,10 +54,10 @@ export enum OptionContractType {
   NonStandardContracts = 'NS',
 }
 
-interface OptionChainData {
+interface OptionChain {
   symbol: string;
   status: string;
-  underlying: OptionUnderlyingData;
+  underlying: OptionUnderlying;
   strategy: OptionStrategy;
   interval: number;
   isDelayed: boolean;
@@ -65,11 +66,11 @@ interface OptionChainData {
   interestRate: number;
   underlyingPrice: number;
   volatility: number;
-  callExpDateMap: ExpirationStrikeMapData;
-  putExpDateMap: ExpirationStrikeMapData;
+  callExpDateMap: ExpirationStrikeMap;
+  putExpDateMap: ExpirationStrikeMap;
 }
 
-interface OptionUnderlyingData {
+interface OptionUnderlying {
   ask: number;
   askSize: number;
   bid: number;
@@ -95,7 +96,7 @@ interface OptionUnderlyingData {
   tradeTime: number;
 }
 
-interface ExpirationStrikeMapData {
+interface ExpirationStrikeMap {
   [date: string]: {
     [strike: string]: Option[];
   };
@@ -134,7 +135,7 @@ interface Option {
   theoreticalVolatility: number;
   isMini: boolean;
   isNonStandard: boolean;
-  optionDeliverablesList: OptionDeliverableData[];
+  optionDeliverablesList: OptionDeliverable[];
   strikePrice: number;
   expirationDate: string;
   expirationType: string;
@@ -147,7 +148,7 @@ interface Option {
   markPercentChange: number;
 }
 
-interface OptionDeliverableData {
+interface OptionDeliverable {
   symbol: string;
   assetType: string;
   deliverableUnits: string;
@@ -162,8 +163,8 @@ export interface GetOptionChainOptions {
   interval?: number;
   strike?: number;
   range?: OptionRange;
-  fromDate?: string;
-  toDate?: string;
+  fromDate?: Date;
+  toDate?: Date;
   volatility?: number;
   underlyingPrice?: number;
   interestRate?: number;
@@ -172,128 +173,36 @@ export interface GetOptionChainOptions {
   optionType?: OptionContractType;
 }
 
-export class OptionChainClient {
-  constructor(private client: Client) {}
-
-  async getOptionChain(symbol: string, options: GetOptionChainOptions) {
-    const response = await this.client.get<OptionChainData>(
-      'marketdata/chains',
-      {
-        ...options,
-        symbol,
-      }
-    );
-    return response.data;
-  }
-}
-
-export class OptionChain {
-  constructor(
-    protected data: OptionChainData,
-    protected request: GetOptionChainOptions,
-    private optionChainClient: OptionChainClient
-  ) {}
-
-  get symbol() {
-    return this.data.symbol;
-  }
-
-  get status() {
-    return this.data.status;
-  }
-
-  get underlying() {
-    return this.data.underlying;
-  }
-
-  get strategy() {
-    return this.data.strategy;
-  }
-
-  get interval() {
-    return this.data.interval;
-  }
-
-  get isDelayed() {
-    return this.data.isDelayed;
-  }
-
-  get isIndex() {
-    return this.data.isIndex;
-  }
-
-  get daysToExpiration() {
-    return this.data.daysToExpiration;
-  }
-
-  get interestRate() {
-    return this.data.interestRate;
-  }
-
-  get underlyingPrice() {
-    return this.data.underlyingPrice;
-  }
-
-  get volatility() {
-    return this.data.volatility;
-  }
-
-  get callExpDateMap() {
-    return this.data.callExpDateMap;
-  }
-
-  get putExpDateMap() {
-    return this.data.putExpDateMap;
-  }
-
-  private memoCallOptions: Option[] = null;
-  get callOptions() {
-    if (this.memoCallOptions) {
-      return this.memoCallOptions;
-    }
-
-    this.memoCallOptions = this.flattenOptionMap(this.data.callExpDateMap);
-    return this.memoCallOptions;
-  }
-
-  private memoPutOptions: Option[] = null;
-  get putOptions() {
-    if (this.memoPutOptions) {
-      return this.memoPutOptions;
-    }
-
-    this.memoPutOptions = this.flattenOptionMap(this.data.putExpDateMap);
-    return this.memoPutOptions;
-  }
-
-  toJson() {
-    return { ...this.data } as OptionChainData;
-  }
-
-  async refresh() {
-    this.data = await this.optionChainClient.getOptionChain(
-      this.symbol,
-      this.request
-    );
-    this.memoCallOptions = null;
-    this.memoPutOptions = null;
-  }
-
-  private flattenOptionMap(map: ExpirationStrikeMapData) {
-    return Object.values(map).reduce((options, strikeMap) => {
-      Object.values(strikeMap).forEach((strikeOptions) => {
-        options.push(...strikeOptions);
-      });
-
-      return options;
-    }, [] as Option[]);
-  }
-}
-
-export function createOptionChainInstance(
-  data: OptionChainData,
-  request: GetOptionChainOptions,
-  optionChainClient: OptionChainClient
+export async function getOptionChain(
+  td: TDAmeritrade,
+  symbol: string,
+  options?: GetOptionChainOptions
 ) {
-  return new OptionChain(data, request, optionChainClient);
+  const query = {
+    ...options,
+    fromDate: options.fromDate?.toISOString() || undefined,
+    toDate: options.toDate?.toISOString() || undefined,
+    symbol,
+  };
+
+  const response = await apiGet<OptionChain>(td, 'marketdata/chains', query);
+  return response.data;
+}
+
+export function getCallOptions(optionChain: OptionChain) {
+  return flattenOptionMap(optionChain.callExpDateMap);
+}
+
+export function getPutOptions(optionChain: OptionChain) {
+  return flattenOptionMap(optionChain.putExpDateMap);
+}
+
+function flattenOptionMap(map: ExpirationStrikeMap) {
+  return Object.values(map).reduce((options, strikeMap) => {
+    Object.values(strikeMap).forEach((strikeOptions) => {
+      options.push(...strikeOptions);
+    });
+
+    return options;
+  }, [] as Option[]);
 }

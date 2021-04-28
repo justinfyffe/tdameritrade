@@ -1,4 +1,5 @@
-import { Client } from './client';
+import { apiGet } from './client';
+import { TDAmeritrade } from './tdameritrade';
 
 export enum MarketType {
   Bond = 'BOND',
@@ -14,7 +15,7 @@ export enum MarketType {
   Unknown = 'UNKNOWN',
 }
 
-export interface MarketHoursData {
+export interface MarketHours {
   category: string;
   date: string;
   exchange: string;
@@ -25,84 +26,19 @@ export interface MarketHoursData {
   sessionHours: unknown;
 }
 
-export class MarketHoursClient {
-  constructor(private client: Client) {}
-
-  async getHours(markets: MarketType | MarketType[], date: string) {
-    const path = Array.isArray(markets)
-      ? 'marketdata/hours'
-      : `marketdata/${markets}/hours`;
-
-    const options = Array.isArray(markets) ? { date, markets } : { date };
-
-    const response = await this.client.get<MarketHoursData | MarketHoursData[]>(
-      path,
-      options
-    );
-    return response.data;
-  }
-}
-
-export class MarketHours {
-  constructor(
-    protected data: MarketHoursData,
-    private marketHoursClient: MarketHoursClient
-  ) {}
-
-  get category() {
-    return this.data.category;
-  }
-
-  get date() {
-    return this.data.date;
-  }
-
-  get exchange() {
-    return this.data.exchange;
-  }
-
-  get isOpen() {
-    return this.data.isOpen;
-  }
-
-  get marketType() {
-    return this.data.marketType;
-  }
-
-  get product() {
-    return this.data.product;
-  }
-
-  get productName() {
-    return this.data.productName;
-  }
-
-  get sessionHours() {
-    return this.data.sessionHours;
-  }
-
-  toJson() {
-    return { ...this.data } as MarketHoursData;
-  }
-
-  async refresh() {
-    this.data = (await this.marketHoursClient.getHours(
-      this.marketType,
-      this.date
-    )) as MarketHoursData;
-  }
-}
-
-export function createMarketHoursInstance(
-  data: MarketHoursData,
-  marketHoursClient: MarketHoursClient
+export async function getMarketHours(
+  td: TDAmeritrade,
+  markets: MarketType | MarketType[],
+  date: Date
 ) {
-  return new MarketHours(data, marketHoursClient);
-}
+  const path = Array.isArray(markets)
+    ? 'marketdata/hours'
+    : `marketdata/${markets}/hours`;
 
-export function createMarketHoursInstances(
-  data: MarketHoursData[],
-  marketHoursClient: MarketHoursClient
-) {
-  return data.map((data) => new MarketHours(data, marketHoursClient));
+  const query = Array.isArray(markets)
+    ? { date: date.toISOString(), markets }
+    : { date: date.toISOString() };
+
+  const response = await apiGet<MarketHours | MarketHours[]>(td, path, query);
+  return response.data;
 }

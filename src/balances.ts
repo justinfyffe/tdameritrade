@@ -1,4 +1,4 @@
-export interface Balance {
+interface Balance {
   accruedInterest: number;
   bondValue: number;
   cashBalance: number;
@@ -11,7 +11,7 @@ export interface Balance {
   pendingDeposits: number;
 }
 
-export interface MarginBalance extends Balance {
+interface MarginBalance extends Balance {
   availableFundsNonMarginableTrade: number;
   buyingPower: number;
   dayTradingBuyingPower: number;
@@ -62,7 +62,7 @@ export interface MarginAccountProjectedBalance extends MarginBalance {
   optionBuyingPower: number;
 }
 
-export interface CashBalance extends Balance {
+interface CashBalance extends Balance {
   cashAvailableForTrading: number;
   cashAvailableForWithdrawal: number;
   unsettledCash: number;

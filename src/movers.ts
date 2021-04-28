@@ -1,4 +1,5 @@
-import { Client } from './client';
+import { apiGet } from './client';
+import { TDAmeritrade } from './tdameritrade';
 
 export enum MoverDirection {
   Up = 'up',
@@ -19,19 +20,20 @@ export interface Mover {
   totalVolume: number;
 }
 
-export interface GetMoversOptions {
+export interface MovementOptions {
   direction?: MoverDirection;
   change?: MoverChange;
 }
 
-export class MoverClient {
-  constructor(private client: Client) {}
-
-  async getMovers(index: string, options?: GetMoversOptions) {
-    const response = await this.client.get<Mover[]>(
-      `marketdata/${index}/movers`,
-      options
-    );
-    return response.data;
-  }
+export async function getMovers(
+  td: TDAmeritrade,
+  index: string,
+  movement?: MovementOptions
+) {
+  const response = await apiGet<Mover[]>(
+    td,
+    `marketdata/${index}/movers`,
+    movement
+  );
+  return response.data;
 }

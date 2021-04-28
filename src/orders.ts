@@ -1,5 +1,7 @@
-import { Client } from './client';
+import { format } from 'date-fns';
+import { apiDelete, apiGet, apiPost, apiPut } from './client';
 import { Instrument } from './instruments';
+import { TDAmeritrade } from './tdameritrade';
 
 export enum OrderSession {
   Normal = 'NORMAL',
@@ -170,7 +172,7 @@ export enum OrderExecutionType {
   Fill = 'FILL',
 }
 
-export interface OrderData {
+export interface Order {
   session: OrderSession;
   duration: OrderDuration;
   orderType: OrderType;
@@ -205,7 +207,7 @@ export interface OrderData {
   accountId: number;
   orderActivityCollection: OrderExecution[];
   replacingOrderCollection: OrderExecution[];
-  childOrderStrategies: OrderData[];
+  childOrderStrategies: Order[];
   statusDescription: string;
 }
 
@@ -243,241 +245,71 @@ export interface OrderExecutionLeg {
 export interface GetOrdersOptions {
   accountId?: number;
   maxResults?: number;
-  fromEnteredTime: string;
-  toEnteredTime: string;
+  fromEnteredTime: Date;
+  toEnteredTime: Date;
   status?: OrderStatus;
 }
 
-export class OrderClient {
-  constructor(private client: Client) {}
-
-  async cancelOrder(accountId: number, orderId: number) {
-    await this.client.delete(`accounts/${accountId}/orders/${orderId}`);
-  }
-
-  async getOrder(accountId: number, orderId: number) {
-    const response = await this.client.get<OrderData>(
-      `accounts/${accountId}/orders/${orderId}`
-    );
-
-    return response.data;
-  }
-
-  async getOrders(options: GetOrdersOptions) {
-    const path = options.accountId
-      ? `accounts/${options.accountId}/orders`
-      : 'orders';
-
-    const response = await this.client.get<OrderData[]>(path, {
-      maxResults: options.maxResults || '',
-      fromEnteredTime: options.fromEnteredTime,
-      toEnteredTime: options.toEnteredTime,
-      status: options.status || '',
-    });
-
-    return response.data;
-  }
-
-  async placeOrder(accountId: number, order: Partial<OrderData>) {
-    const response = await this.client.post<OrderData>(
-      `accounts/${accountId}/orders`,
-      order
-    );
-
-    return response.data;
-  }
-
-  async replaceOrder(
-    accountId: number,
-    orderId: number,
-    order: Partial<OrderData>
-  ) {
-    const response = await this.client.post<OrderData>(
-      `accounts/${accountId}/orders/${orderId}`,
-      order
-    );
-
-    return response.data;
-  }
-}
-
-export class Order {
-  constructor(protected data: OrderData, private orderClient: OrderClient) {}
-
-  get session() {
-    return this.data.session;
-  }
-
-  get duration() {
-    return this.data.duration;
-  }
-
-  get orderType() {
-    return this.data.orderType;
-  }
-
-  get cancelTime() {
-    return this.data.cancelTime;
-  }
-
-  get complexOrderStrategyType() {
-    return this.data.complexOrderStrategyType;
-  }
-
-  get quantity() {
-    return this.data.quantity;
-  }
-
-  get filledQuantity() {
-    return this.data.filledQuantity;
-  }
-
-  get remainingQuantity() {
-    return this.data.remainingQuantity;
-  }
-
-  get requestedDestination() {
-    return this.data.requestedDestination;
-  }
-
-  get destinationLinkName() {
-    return this.data.destinationLinkName;
-  }
-
-  get releaseTime() {
-    return this.data.releaseTime;
-  }
-
-  get stopPrice() {
-    return this.data.stopPrice;
-  }
-
-  get stopPriceLinkBasis() {
-    return this.data.stopPriceLinkBasis;
-  }
-
-  get stopPriceLinkType() {
-    return this.data.stopPriceLinkType;
-  }
-
-  get stopPriceOffset() {
-    return this.data.stopPriceOffset;
-  }
-
-  get stopType() {
-    return this.data.stopType;
-  }
-
-  get priceLinkBasis() {
-    return this.data.priceLinkBasis;
-  }
-
-  get priceLinkType() {
-    return this.data.priceLinkType;
-  }
-
-  get price() {
-    return this.data.price;
-  }
-
-  get taxLotMethod() {
-    return this.data.taxLotMethod;
-  }
-
-  get orderLegCollection() {
-    return this.data.orderLegCollection;
-  }
-
-  get activationPrice() {
-    return this.data.activationPrice;
-  }
-
-  get specialInstruction() {
-    return this.data.specialInstruction;
-  }
-
-  get orderStrategyType() {
-    return this.data.orderStrategyType;
-  }
-
-  get orderId() {
-    return this.data.orderId;
-  }
-
-  get cancelable() {
-    return this.data.cancelable;
-  }
-
-  get editable() {
-    return this.data.editable;
-  }
-
-  get status() {
-    return this.data.status;
-  }
-
-  get enteredTime() {
-    return this.data.enteredTime;
-  }
-
-  get closeTime() {
-    return this.data.closeTime;
-  }
-
-  get tag() {
-    return this.data.tag;
-  }
-
-  get accountId() {
-    return this.data.accountId;
-  }
-
-  get orderActivityCollection() {
-    return this.data.orderActivityCollection;
-  }
-
-  get replacingOrderCollection() {
-    return this.data.replacingOrderCollection;
-  }
-
-  get childOrderStrategies() {
-    return this.data.childOrderStrategies;
-  }
-
-  get statusDescription() {
-    return this.data.statusDescription;
-  }
-
-  toJson() {
-    return { ...this.data };
-  }
-
-  async cancel() {
-    await this.orderClient.cancelOrder(this.accountId, this.orderId);
-  }
-
-  async replace(order: Partial<OrderData>) {
-    const data = await this.orderClient.replaceOrder(
-      this.accountId,
-      this.orderId,
-      order
-    );
-
-    return createOrderInstance(data, this.orderClient);
-  }
-
-  async refresh() {
-    this.data = await this.orderClient.getOrder(this.accountId, this.orderId);
-  }
-}
-
-export function createOrderInstance(data: OrderData, orderClient: OrderClient) {
-  return new Order(data, orderClient);
-}
-
-export function createOrderInstances(
-  data: OrderData[],
-  orderClient: OrderClient
+export async function cancelOrder(
+  td: TDAmeritrade,
+  accountId: number,
+  orderId: number
 ) {
-  return data.map((data) => new Order(data, orderClient));
+  await apiDelete(td, `accounts/${accountId}/orders/${orderId}`);
+}
+
+export async function getOrder(
+  td: TDAmeritrade,
+  accountId: number,
+  orderId: number
+) {
+  const response = await apiGet<Order>(
+    td,
+    `accounts/${accountId}/orders/${orderId}`
+  );
+  return response.data;
+}
+
+export async function getOrders(td: TDAmeritrade, options: GetOrdersOptions) {
+  const path = options.accountId
+    ? `accounts/${options.accountId}/orders`
+    : 'orders';
+
+  const response = await apiGet<Order[]>(td, path, {
+    maxResults: options.maxResults || '',
+    fromEnteredTime: format(options.fromEnteredTime, 'yyyy-MM-dd'),
+    toEnteredTime: format(options.toEnteredTime, 'yyyy-MM-dd'),
+    status: options.status || '',
+  });
+
+  return response.data;
+}
+
+export async function placeOrder(
+  td: TDAmeritrade,
+  accountId: number,
+  order: Partial<Order>
+) {
+  const response = await apiPost<Order>(
+    td,
+    `accounts/${accountId}/orders`,
+    order
+  );
+
+  return response.data;
+}
+
+export async function replaceOrder(
+  td: TDAmeritrade,
+  accountId: number,
+  orderId: number,
+  order: Partial<Order>
+) {
+  const response = await apiPut<Order>(
+    td,
+    `accounts/${accountId}/orders/${orderId}`,
+    order
+  );
+
+  return response.data;
 }
