@@ -1,4 +1,5 @@
-import { Client } from './client';
+import { apiGet, apiPost, apiPut } from './client';
+import { TDAmeritrade } from './tdameritrade';
 
 export enum WatchlistAssetType {
   Equity = 'EQUITY',
@@ -15,7 +16,7 @@ export enum WatchlistStatus {
   Deleted = 'DELETED',
 }
 
-export interface WatchlistData {
+export interface Watchlist {
   name: string;
   watchlistId: number;
   accountId: number;
@@ -60,110 +61,53 @@ interface UpdateWatchlistItem
   sequenceId: number;
 }
 
-export class WatchlistClient {
-  constructor(private client: Client) {}
-
-  async createWatchlist(accountId: number, watchlist: CreateWatchlistRequest) {
-    await this.client.post(`accounts/${accountId}/watchlists`, watchlist);
-  }
-
-  async deleteWatchlist(accountId: number, watchlistId: number) {
-    await this.client.delete(`accounts/${accountId}/watchlists/${watchlistId}`);
-  }
-
-  async getWatchlist(accountId: number, watchlistId: number) {
-    const response = await this.client.get<WatchlistData>(
-      `accounts/${accountId}/watchlists/${watchlistId}`
-    );
-    return response.data;
-  }
-
-  async getWatchlists(accountId?: number) {
-    const path =
-      accountId != null
-        ? `accounts/${accountId}/watchlists`
-        : 'accounts/watchlists';
-
-    const response = await this.client.get<WatchlistData[]>(path);
-    return response.data;
-  }
-
-  async replaceWatchlist(
-    accountId: number,
-    watchlistId: number,
-    watchlist: UpdateWatchlistRequest
-  ) {
-    await this.client.put(
-      `accounts/${accountId}/watchlists/${watchlistId}`,
-      watchlist
-    );
-  }
-}
-
-export class Watchlist {
-  constructor(
-    protected data: WatchlistData,
-    private watchlistClient: WatchlistClient
-  ) {}
-
-  get name() {
-    return this.data.name;
-  }
-
-  get watchlistId() {
-    return this.data.watchlistId;
-  }
-
-  get accountId() {
-    return this.data.accountId;
-  }
-
-  get status() {
-    return this.data.status;
-  }
-
-  get watchlistItems() {
-    return this.data.watchlistItems;
-  }
-
-  toJson() {
-    return { ...this.data } as WatchlistData;
-  }
-
-  async delete() {
-    await this.watchlistClient.deleteWatchlist(
-      this.accountId,
-      this.watchlistId
-    );
-  }
-
-  async replace(watchlist: UpdateWatchlistRequest) {
-    await this.watchlistClient.replaceWatchlist(
-      this.accountId,
-      this.watchlistId,
-      watchlist
-    );
-    await this.refresh();
-  }
-
-  async refresh() {
-    this.data = await this.watchlistClient.getWatchlist(
-      this.accountId,
-      this.watchlistId
-    );
-  }
-}
-
-export function createWatchlistInstance(
-  data: WatchlistData,
-  watchlistClient: WatchlistClient
+export async function createWatchlist(
+  td: TDAmeritrade,
+  accountId: number,
+  watchlist: CreateWatchlistRequest
 ) {
-  return new Watchlist(data, watchlistClient);
+  await apiPost(td, `accounts/${accountId}/watchlists`, watchlist);
 }
 
-export function createWatchlistInstances(
-  data: WatchlistData[],
-  watchlistClient: WatchlistClient
+export async function deleteWatchlist(
+  td: TDAmeritrade,
+  accountId: number,
+  watchlistId: number
 ) {
-  return data.map((data) => new Watchlist(data, watchlistClient));
+  await this.client.delete(`accounts/${accountId}/watchlists/${watchlistId}`);
+}
+
+export async function getWatchlist(
+  td: TDAmeritrade,
+  accountId: number,
+  watchlistId: number
+) {
+  const response = await apiGet<Watchlist>(
+    td,
+    `accounts/${accountId}/watchlists/${watchlistId}`
+  );
+  return response.data;
+}
+
+export async function getWatchlists(td: TDAmeritrade, accountId?: number) {
+  const path =
+    accountId != null
+      ? `accounts/${accountId}/watchlists`
+      : 'accounts/watchlists';
+
+  const response = await apiGet<Watchlist[]>(td, path);
+  return response.data;
+}
+
+export async function replaceWatchlist(
+  td: TDAmeritrade,
+  accountId: number,
+  watchlistId: number,
+  watchlist: UpdateWatchlistRequest
+) {
+  await apiPut(
+    td,
+    `accounts/${accountId}/watchlists/${watchlistId}`,
+    watchlist
+  );
 }

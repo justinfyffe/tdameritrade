@@ -1,4 +1,5 @@
-import { Client } from './client';
+import { apiGet } from './client';
+import { TDAmeritrade } from './tdameritrade';
 
 export enum EquityOrderLegInstruction {
   Buy = 'BUY',
@@ -175,34 +176,41 @@ export interface Authorizations {
   scottradeAccount: boolean;
 }
 
-export class UserInfoClient {
-  constructor(private client: Client) {}
+export async function getPreferences(td: TDAmeritrade, accountId: number) {
+  const response = await apiGet<Preferences>(
+    td,
+    `accounts/${accountId}/preferences`
+  );
 
-  async getPreferences(accountId: number) {
-    const response = await this.client.get<Preferences>(
-      `accounts/${accountId}/preferences`
-    );
+  return response.data;
+}
 
-    return response.data;
-  }
+export async function updatePreferences(
+  accountId: number,
+  preferences: Preferences
+) {
+  await this.client.put(`accounts/${accountId}/preferences`, preferences);
+}
 
-  async updatePreferences(accountId: number, preferences: Preferences) {
-    await this.client.put(`accounts/${accountId}/preferences`, preferences);
-  }
+export async function getStreamerSubscriptionKeys(
+  td: TDAmeritrade,
+  accountIds: number[]
+) {
+  const response = await apiGet<SubscriptionKeys>(
+    td,
+    'userprincipals/streamersubscriptionkeys',
+    { accountIds: accountIds.join(',') }
+  );
 
-  async getStreamerSubscriptionKeys(accountIds: number[]) {
-    const response = await this.client.get<SubscriptionKeys>(
-      'userprincipals/streamersubscriptionkeys',
-      { accountIds: accountIds.join(',') }
-    );
+  return response.data;
+}
 
-    return response.data;
-  }
-
-  async getUserPrincipals(fields: UserPrincipalField[] = []) {
-    const response = await this.client.get<UserPrincipal>('userprincipals', {
-      fields: fields.join(','),
-    });
-    return response.data;
-  }
+export async function getUserPrincipals(
+  td: TDAmeritrade,
+  fields: UserPrincipalField[] = []
+) {
+  const response = await apiGet<UserPrincipal>(td, 'userprincipals', {
+    fields: fields.join(','),
+  });
+  return response.data;
 }
