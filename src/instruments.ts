@@ -25,7 +25,7 @@ export enum CashEquivalentType {
   MoneyMarketFund = 'MONEY_MARKET_FUND',
 }
 
-export enum OptionType {
+export enum OptionInstrumentType {
   Vanilla = 'VANILLA',
   Binary = 'BINARY',
   Barrier = 'BARRIER',
@@ -67,7 +67,7 @@ export interface CashEquivalentInstrument extends BaseInstrument {
 
 export interface OptionInstrument extends BaseInstrument {
   assetType: AssetType.Option;
-  type: OptionType;
+  type: OptionInstrumentType;
   putCall: OptionPutCall;
   underlyingSymbol: string;
   optionMultiplier: number;
