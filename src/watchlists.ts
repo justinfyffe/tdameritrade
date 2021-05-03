@@ -1,13 +1,6 @@
 import { apiGet, apiPost, apiPut } from './client';
+import { AssetType } from './instruments';
 import { TDAmeritrade } from './tdameritrade';
-
-export enum WatchlistAssetType {
-  Equity = 'EQUITY',
-  Option = 'OPTION',
-  MutualFund = 'MUTUAL_FUND',
-  FixedIncome = 'FIXED_INCOME',
-  Index = 'INDEX',
-}
 
 export enum WatchlistStatus {
   Unchanged = 'UNCHANGED',
@@ -36,7 +29,7 @@ export interface WatchlistItem {
 export interface WatchlistInstrument {
   symbol: string;
   description: string;
-  assetType: WatchlistAssetType;
+  assetType: AssetType;
 }
 
 export interface CreateWatchlistRequest {

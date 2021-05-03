@@ -123,9 +123,9 @@ export interface UserPrincipal {
   stalePassword: boolean;
   streamerInfo: StreamerInfo;
   professionalStatus: ProfessionalStatus;
-  quotes: Quotes;
+  quotes: QuoteSettings;
   streamerSubscriptionKeys: SubscriptionKeys;
-  accounts: Account[];
+  accounts: AccountSettings[];
 }
 
 export interface StreamerInfo {
@@ -139,7 +139,7 @@ export interface StreamerInfo {
   appId: string;
 }
 
-export interface Quotes {
+export interface QuoteSettings {
   isNyseDelayed: boolean;
   isNasdaqDelayed: boolean;
   isOpraDelayed: boolean;
@@ -148,10 +148,10 @@ export interface Quotes {
   isIceDelayed: boolean;
   isForexDelayed: boolean;
   streamerSubscriptionKeys: SubscriptionKeys;
-  accounts: Account;
+  accounts: AccountSettings;
 }
 
-export interface Account {
+export interface AccountSettings {
   accountId: string;
   description: string;
   displayName: string;
@@ -161,10 +161,10 @@ export interface Account {
   surrogateIds: unknown;
   preferences: Preferences;
   acl: string;
-  authorizations: Authorizations;
+  authorizations: AccountAuthorizations;
 }
 
-export interface Authorizations {
+export interface AccountAuthorizations {
   apex: boolean;
   levelTwoQuotes: boolean;
   stockTrading: boolean;

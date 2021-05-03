@@ -1,4 +1,5 @@
 import { apiGet } from './client';
+import { OptionType } from './option-chains';
 import { TDAmeritrade } from './tdameritrade';
 
 export enum AssetType {
@@ -29,11 +30,6 @@ export enum OptionInstrumentType {
   Vanilla = 'VANILLA',
   Binary = 'BINARY',
   Barrier = 'BARRIER',
-}
-
-export enum OptionPutCall {
-  Call = 'CALL',
-  Put = 'PUT',
 }
 
 interface BaseInstrument {
@@ -68,7 +64,7 @@ export interface CashEquivalentInstrument extends BaseInstrument {
 export interface OptionInstrument extends BaseInstrument {
   assetType: AssetType.Option;
   type: OptionInstrumentType;
-  putCall: OptionPutCall;
+  putCall: OptionType;
   underlyingSymbol: string;
   optionMultiplier: number;
   optionDeliverables: OptionDeliverable[];
@@ -133,7 +129,7 @@ export interface FundamentalData {
 export interface OptionDeliverable {
   symbol: string;
   deliverableUnits: number;
-  currentType: 'USD' | 'CAD' | 'EUR' | 'JPY';
+  currencyType: 'USD' | 'CAD' | 'EUR' | 'JPY';
   assetType: AssetType;
 }
 

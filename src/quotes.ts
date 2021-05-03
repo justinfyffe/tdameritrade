@@ -1,7 +1,7 @@
 import { apiGet } from './client';
 import { TDAmeritrade } from './tdameritrade';
 
-export interface BaseQuote {
+interface BaseQuote {
   symbol: string;
   description: string;
   exchangeName: string;
