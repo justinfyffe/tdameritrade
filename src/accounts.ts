@@ -56,8 +56,8 @@ export async function getAccounts(
   fieldOptions?: FieldOptions
 ) {
   const fields = [];
-  fieldOptions.positions && fields.push('positions');
-  fieldOptions.orders && fields.push('orders');
+  fieldOptions?.positions && fields.push('positions');
+  fieldOptions?.orders && fields.push('orders');
 
   const response = await apiGet<GetAccountResponse[]>(td, 'accounts', {
     fields: fields.join(','),

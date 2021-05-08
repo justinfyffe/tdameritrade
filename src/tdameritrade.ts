@@ -8,12 +8,14 @@ export interface TDAmeritradeConfig {
 
   sslKey: string;
   sslCert: string;
-  redirectUri?: string;
+  redirectUri: string;
 
   accessToken?: string;
   accessTokenExpires?: Date;
   refreshToken?: string;
   refreshTokenExpires?: Date;
+
+  onAuth(oauthUrl: string): void | Promise<void>;
 }
 
 export interface TDAmeritrade {
@@ -29,6 +31,8 @@ export interface TDAmeritrade {
   refreshTokenExpires: Date;
 
   axios: AxiosInstance;
+
+  onAuth(oauthUrl: string): void | Promise<void>;
 }
 
 export async function tdameritrade(config: TDAmeritradeConfig) {
@@ -57,7 +61,7 @@ export async function tdameritrade(config: TDAmeritradeConfig) {
   const td: TDAmeritrade = {
     apiKey: config.apiKey,
 
-    redirectUri: config.redirectUri ?? 'https://localhost:8443',
+    redirectUri: config.redirectUri,
     sslKey: config.sslKey,
     sslCert: config.sslCert,
 
@@ -67,6 +71,8 @@ export async function tdameritrade(config: TDAmeritradeConfig) {
     refreshTokenExpires: config.refreshTokenExpires,
 
     axios: axios.create({ baseURL }),
+
+    onAuth: config.onAuth,
   };
 
   await checkAccess(td);

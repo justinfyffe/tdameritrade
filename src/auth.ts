@@ -37,7 +37,7 @@ async function authenticate(td: TDAmeritrade) {
     };
 
     const server = https.createServer(serverOptions, async (req, res) => {
-      const requestUrl = new URL(req.url);
+      const requestUrl = new URL(req.url, 'http://127.0.0.1:8443');
 
       if (!requestUrl.searchParams.has('code')) {
         res.writeHead(422);
@@ -61,8 +61,14 @@ async function authenticate(td: TDAmeritrade) {
     });
 
     const { port, hostname } = new URL(td.redirectUri);
-    server.listen(Number(port) || 8443, hostname, () => {
-      this.emitOAuthEvent();
+    server.listen(Number(port), hostname, () => {
+      const query = querystring.stringify({
+        response_type: 'code',
+        redirect_uri: td.redirectUri,
+        client_id: `${td.apiKey}@AMER.OAUTHAP`,
+      });
+
+      td.onAuth(`https://auth.tdameritrade.com/auth?${query}`);
     });
   });
 }
