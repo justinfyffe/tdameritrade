@@ -9,7 +9,7 @@ export interface SavedOrder extends Omit<Order, 'tag'> {
 
 export async function createSavedOrder(
   td: TDAmeritrade,
-  accountId: number,
+  accountId: string,
   order: Partial<SavedOrder>
 ) {
   const response = await apiPost<SavedOrder>(
@@ -23,7 +23,7 @@ export async function createSavedOrder(
 
 export async function deleteSavedOrder(
   td: TDAmeritrade,
-  accountId: number,
+  accountId: string,
   savedOrderId: number
 ) {
   await apiDelete(td, `accounts/${accountId}/savedorders/${savedOrderId}`);
@@ -31,7 +31,7 @@ export async function deleteSavedOrder(
 
 export async function getSavedOrder(
   td: TDAmeritrade,
-  accountId: number,
+  accountId: string,
   savedOrderId: number
 ) {
   const response = await apiGet<SavedOrder>(
@@ -42,7 +42,7 @@ export async function getSavedOrder(
   return response.data;
 }
 
-export async function getSavedOrders(td: TDAmeritrade, accountId: number) {
+export async function getSavedOrders(td: TDAmeritrade, accountId: string) {
   const response = await apiGet<SavedOrder[]>(
     td,
     `accounts/${accountId}/savedorders`
@@ -53,7 +53,7 @@ export async function getSavedOrders(td: TDAmeritrade, accountId: number) {
 
 export async function replaceSavedOrder(
   td: TDAmeritrade,
-  accountId: number,
+  accountId: string,
   savedOrderId: number,
   order: Partial<SavedOrder>
 ) {

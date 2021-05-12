@@ -1,19 +1,15 @@
 import { apiGet } from './client';
 import { TDAmeritrade } from './tdameritrade';
 
-interface BaseQuote {
+export interface MutualFundQuote {
   symbol: string;
   description: string;
-  exchangeName: string;
-  securityStatus: string;
-}
-
-export interface MutualFundQuote extends BaseQuote {
   closePrice: number;
   netChange: number;
   totalVolume: number;
   tradeTimeInLong: number;
   exchange: string;
+  exchangeName: string;
   digits: number;
   '52WkHigh': number;
   '52WkLow': number;
@@ -22,9 +18,11 @@ export interface MutualFundQuote extends BaseQuote {
   divAmount: number;
   divYield: number;
   divDate: string;
+  securityStatus: string;
 }
 
-export interface FutureQuote extends BaseQuote {
+export interface FutureQuote {
+  symbol: string;
   bidPriceInDouble: number;
   askPriceInDouble: number;
   lastPriceInDouble: number;
@@ -34,10 +32,13 @@ export interface FutureQuote extends BaseQuote {
   lowPriceInDouble: number;
   closePriceInDouble: number;
   exchange: string;
+  description: string;
   lastId: string;
   openPriceInDouble: number;
   changeInDouble: number;
   futurePercentChange: number;
+  exchangeName: string;
+  securityStatus: string;
   openInterest: number;
   mark: number;
   tick: number;
@@ -53,7 +54,8 @@ export interface FutureQuote extends BaseQuote {
   futureExpirationDate: string;
 }
 
-export interface FutureOptionQuote extends BaseQuote {
+export interface FutureOptionQuote {
+  symbol: string;
   bidPriceInDouble: number;
   askPriceInDouble: number;
   lastPriceInDouble: number;
@@ -64,6 +66,8 @@ export interface FutureOptionQuote extends BaseQuote {
   openPriceInDouble: number;
   netChangeInDouble: number;
   openInterest: number;
+  exchangeName: string;
+  securityStatus: string;
   volatility: number;
   moneyIntrinsicValueInDouble: number;
   multiplierInDouble: number;
@@ -90,7 +94,9 @@ export interface FutureOptionQuote extends BaseQuote {
   inTheMoney: boolean;
 }
 
-export interface IndexQuote extends BaseQuote {
+export interface IndexQuote {
+  symbol: string;
+  description: string;
   lastPrice: number;
   openPrice: number;
   highPrice: number;
@@ -100,12 +106,16 @@ export interface IndexQuote extends BaseQuote {
   totalVolume: number;
   tradeTimeInLong: number;
   exchange: string;
+  exchangeName: string;
   digits: number;
   '52WkHigh': number;
   '52WkLow': number;
+  securityStatus: string;
 }
 
-export interface OptionQuote extends BaseQuote {
+export interface OptionQuote {
+  symbol: string;
+  description: string;
   bidPrice: number;
   bidSize: number;
   askPrice: number;
@@ -134,14 +144,17 @@ export interface OptionQuote extends BaseQuote {
   theta: number;
   vega: number;
   rho: number;
+  securityStatus: string;
   theoreticalOptionValue: number;
   underlyingPrice: number;
   uvExpirationType: string;
   exchange: string;
+  exchangeName: string;
   settlementType: string;
 }
 
-export interface ForexQuote extends BaseQuote {
+export interface ForexQuote {
+  symbol: string;
   bidPriceInDouble: number;
   askPriceInDouble: number;
   lastPriceInDouble: number;
@@ -149,10 +162,13 @@ export interface ForexQuote extends BaseQuote {
   lowPriceInDouble: number;
   closePriceInDouble: number;
   exchange: string;
+  description: string;
   openPriceInDouble: number;
   changeInDouble: number;
   percentChange: number;
+  exchangeName: string;
   digits: number;
+  securityStatus: string;
   tick: number;
   tickAmount: number;
   product: string;
@@ -163,7 +179,9 @@ export interface ForexQuote extends BaseQuote {
   mark: number;
 }
 
-export interface EquityQuote extends BaseQuote {
+export interface EquityQuote {
+  symbol: string;
+  description: string;
   bidPrice: number;
   bidSize: number;
   bidId: string;
@@ -183,6 +201,7 @@ export interface EquityQuote extends BaseQuote {
   tradeTimeInLong: number;
   mark: number;
   exchange: string;
+  exchangeName: string;
   marginable: boolean;
   shortable: boolean;
   volatility: number;
@@ -193,6 +212,7 @@ export interface EquityQuote extends BaseQuote {
   divAmount: number;
   divYield: number;
   divDate: string;
+  securityStatus: string;
   regularMarketLastPrice: number;
   regularMarketLastSize: number;
   regularMarketNetChange: number;
@@ -220,4 +240,42 @@ export async function getQuotes(td: TDAmeritrade, symbols: string[]) {
   });
 
   return response.data;
+}
+
+export function isMutualFundQuote(quote: Quote): quote is MutualFundQuote {
+  return 'nAV' in quote;
+}
+
+export function isFutureQuote(quote: Quote): quote is FutureQuote {
+  return (
+    'futureMultiplier' in quote ||
+    'futurePriceFormat' in quote ||
+    'futureSettlementPrice' in quote ||
+    'futureActiveSymbol' in quote
+  );
+}
+
+export function isFutureOptionQuote(quote: Quote): quote is FutureOptionQuote {
+  return 'contractType' in quote && 'futureExpirationDate' in quote;
+}
+
+export function isIndexQuote(quote: Quote): quote is IndexQuote {
+  return (
+    'totalVolume' in quote &&
+    !isEquityQuote(quote) &&
+    !isMutualFundQuote(quote) &&
+    !isOptionQuote(quote)
+  );
+}
+
+export function isOptionQuote(quote: Quote): quote is OptionQuote {
+  return 'delta' in quote && !isFutureOptionQuote(quote);
+}
+
+export function isForexQuote(quote: Quote): quote is ForexQuote {
+  return 'isTradable' in quote;
+}
+
+export function isEquityQuote(quote: Quote): quote is EquityQuote {
+  return 'shortable' in quote;
 }

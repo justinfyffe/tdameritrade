@@ -1,6 +1,38 @@
 import { apiGet } from './client';
 import { TDAmeritrade } from './tdameritrade';
 
+export enum OptionContractType {
+  All = 'ALL',
+  StandardContracts = 'S',
+  NonStandardContracts = 'NS',
+}
+
+export enum OptionMonth {
+  All = 'ALL',
+  January = 'JAN',
+  February = 'FEB',
+  March = 'MAR',
+  April = 'APR',
+  May = 'MAY',
+  June = 'JUN',
+  July = 'JUL',
+  August = 'AUG',
+  September = 'SEP',
+  October = 'OCT',
+  November = 'NOV',
+  December = 'DEC',
+}
+
+export enum OptionRange {
+  All = 'ALL',
+  InTheMoney = 'ITM',
+  NearTheMoney = 'NTM',
+  OutOfTheMoney = 'OTM',
+  StrikesAboveMarket = 'SAK',
+  StrikesBelowMarket = 'SBM',
+  StrikesNearMarket = 'SNK',
+}
+
 export enum OptionStrategy {
   Single = 'SINGLE',
   Analytical = 'ANALYTICAL',
@@ -22,39 +54,7 @@ export enum OptionType {
   Put = 'PUT',
 }
 
-export enum OptionRange {
-  All = 'ALL',
-  InTheMoney = 'ITM',
-  NearTheMoney = 'NTM',
-  OutOfTheMoney = 'OTM',
-  StrikesAboveMarket = 'SAK',
-  StrikesBelowMarket = 'SBM',
-  StrikesNearMarket = 'SNK',
-}
-
-export enum OptionMonth {
-  All = 'ALL',
-  January = 'JAN',
-  February = 'FEB',
-  March = 'MAR',
-  April = 'APR',
-  May = 'MAY',
-  June = 'JUN',
-  July = 'JUL',
-  August = 'AUG',
-  September = 'SEP',
-  October = 'OCT',
-  November = 'NOV',
-  December = 'DEC',
-}
-
-export enum OptionContractType {
-  All = 'ALL',
-  StandardContracts = 'S',
-  NonStandardContracts = 'NS',
-}
-
-interface OptionChain {
+export interface OptionChain {
   symbol: string;
   status: string;
   underlying: OptionUnderlying;
@@ -70,7 +70,7 @@ interface OptionChain {
   putExpDateMap: ExpirationStrikeMap;
 }
 
-interface OptionUnderlying {
+export interface OptionUnderlying {
   ask: number;
   askSize: number;
   bid: number;
@@ -96,13 +96,13 @@ interface OptionUnderlying {
   tradeTime: number;
 }
 
-interface ExpirationStrikeMap {
+export interface ExpirationStrikeMap {
   [date: string]: {
     [strike: string]: Option[];
   };
 }
 
-interface Option {
+export interface Option {
   putCall: OptionType;
   symbol: string;
   description: string;
@@ -148,7 +148,7 @@ interface Option {
   markPercentChange: number;
 }
 
-interface OptionDeliverable {
+export interface OptionDeliverable {
   symbol: string;
   assetType: string;
   deliverableUnits: string;

@@ -1,34 +1,31 @@
-interface Balance {
+interface MarginBalances {
   accruedInterest: number;
+  availableFundsNonMarginableTrade: number;
   bondValue: number;
+  buyingPower: number;
   cashBalance: number;
   cashReceipts: number;
-  liquidationValue: number;
-  longOptionMarketValue: number;
-  moneyMarketFund: number;
-  mutualFundValue: number;
-  shortOptionMarketValue: number;
-  pendingDeposits: number;
-}
-
-interface MarginBalance extends Balance {
-  availableFundsNonMarginableTrade: number;
-  buyingPower: number;
   dayTradingBuyingPower: number;
   dayTradingBuyingPowerCall: number;
   equity: number;
   equityPercentage: number;
+  liquidationValue: number;
   longMarginValue: number;
+  longOptionMarketValue: number;
   maintenanceCall: number;
   maintenanceRequirement: number;
+  moneyMarketFund: number;
+  mutualFundValue: number;
+  pendingDeposits: number;
   regTCall: number;
   shortMarginValue: number;
   isInCall: boolean;
   marginBalance: number;
   shortBalance: number;
+  shortOptionMarketValue: number;
 }
 
-export interface MarginAccountInitialBalance extends MarginBalance {
+export interface MarginAccountInitialBalances extends MarginBalances {
   cashAvailableForTrading: number;
   dayTradingEquityCall: number;
   longStockValue: number;
@@ -40,7 +37,7 @@ export interface MarginAccountInitialBalance extends MarginBalance {
   accountValue: number;
 }
 
-export interface MarginAccountCurrentBalance extends MarginBalance {
+export interface MarginAccountCurrentBalances extends MarginBalances {
   longMarketValue: number;
   savings: number;
   shortMarketValue: number;
@@ -51,7 +48,7 @@ export interface MarginAccountCurrentBalance extends MarginBalance {
   optionBuyingPower: number;
 }
 
-export interface MarginAccountProjectedBalance extends MarginBalance {
+export interface MarginAccountProjectedBalances extends MarginBalances {
   longMarketValue: number;
   savings: number;
   shortMarketValue: number;
@@ -62,21 +59,31 @@ export interface MarginAccountProjectedBalance extends MarginBalance {
   optionBuyingPower: number;
 }
 
-interface CashBalance extends Balance {
+interface CashBalances {
+  accruedInterest: number;
+  bondValue: number;
   cashAvailableForTrading: number;
   cashAvailableForWithdrawal: number;
-  unsettledCash: number;
+  cashBalance: number;
   cashDebitCallValue: number;
+  cashReceipts: number;
+  liquidationValue: number;
+  longOptionMarketValue: number;
+  moneyMarketFund: number;
+  mutualFundValue: number;
+  pendingDeposits: number;
+  shortOptionMarketValue: number;
+  unsettledCash: number;
 }
 
-export interface CashAccountInitialBalance extends CashBalance {
+export interface CashAccountInitialBalances extends CashBalances {
   longStockValue: number;
   shortStockValue: number;
   isInCall: boolean;
   accountValue: number;
 }
 
-export interface CashAccountCurrentBalance extends CashBalance {
+export interface CashAccountCurrentBalances extends CashBalances {
   longMarketValue: number;
   savings: number;
   shortMarketValue: number;
@@ -85,7 +92,7 @@ export interface CashAccountCurrentBalance extends CashBalance {
   totalCash: number;
 }
 
-export interface CashAccountProjectedBalance extends CashBalance {
+export interface CashAccountProjectedBalances extends CashBalances {
   longMarketValue: number;
   savings: number;
   shortMarketValue: number;
@@ -93,3 +100,5 @@ export interface CashAccountProjectedBalance extends CashBalance {
   longNonMarginableMarketValue: number;
   totalCash: number;
 }
+
+export type Balances = MarginBalances | CashBalances;

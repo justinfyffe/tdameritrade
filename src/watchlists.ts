@@ -1,4 +1,4 @@
-import { apiGet, apiPost, apiPut } from './client';
+import { apiDelete, apiGet, apiPost, apiPut } from './client';
 import { AssetType } from './instruments';
 import { TDAmeritrade } from './tdameritrade';
 
@@ -12,7 +12,7 @@ export enum WatchlistStatus {
 export interface Watchlist {
   name: string;
   watchlistId: number;
-  accountId: number;
+  accountId: string;
   status: WatchlistStatus;
   watchlistItems: WatchlistItem[];
 }
@@ -56,7 +56,7 @@ interface UpdateWatchlistItem
 
 export async function createWatchlist(
   td: TDAmeritrade,
-  accountId: number,
+  accountId: string,
   watchlist: CreateWatchlistRequest
 ) {
   await apiPost(td, `accounts/${accountId}/watchlists`, watchlist);
@@ -64,15 +64,15 @@ export async function createWatchlist(
 
 export async function deleteWatchlist(
   td: TDAmeritrade,
-  accountId: number,
+  accountId: string,
   watchlistId: number
 ) {
-  await this.client.delete(`accounts/${accountId}/watchlists/${watchlistId}`);
+  await apiDelete(td, `accounts/${accountId}/watchlists/${watchlistId}`);
 }
 
 export async function getWatchlist(
   td: TDAmeritrade,
-  accountId: number,
+  accountId: string,
   watchlistId: number
 ) {
   const response = await apiGet<Watchlist>(
@@ -82,7 +82,7 @@ export async function getWatchlist(
   return response.data;
 }
 
-export async function getWatchlists(td: TDAmeritrade, accountId?: number) {
+export async function getWatchlists(td: TDAmeritrade, accountId?: string) {
   const path =
     accountId != null
       ? `accounts/${accountId}/watchlists`
@@ -94,7 +94,7 @@ export async function getWatchlists(td: TDAmeritrade, accountId?: number) {
 
 export async function replaceWatchlist(
   td: TDAmeritrade,
-  accountId: number,
+  accountId: string,
   watchlistId: number,
   watchlist: UpdateWatchlistRequest
 ) {

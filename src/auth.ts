@@ -4,7 +4,7 @@ import * as querystring from 'querystring';
 import { TDAmeritrade } from './tdameritrade';
 
 export async function checkAccess(td: TDAmeritrade) {
-  if (td.accessToken == null || td.refreshToken == null) {
+  if (td.auth.accessToken == null || td.auth.refreshToken == null) {
     await authenticate(td);
   } else if (hasRefreshTokenExpired(td)) {
     await refreshRefreshToken(td);
@@ -15,17 +15,17 @@ export async function checkAccess(td: TDAmeritrade) {
 
 function hasAccessTokenExpired(td: TDAmeritrade) {
   return (
-    td.accessToken == null ||
-    td.accessTokenExpires == null ||
-    td.accessTokenExpires.getTime() < new Date().getTime()
+    td.auth.accessToken == null ||
+    td.auth.accessTokenExpires == null ||
+    td.auth.accessTokenExpires.getTime() < new Date().getTime()
   );
 }
 
 function hasRefreshTokenExpired(td: TDAmeritrade) {
   return (
-    td.refreshToken == null ||
-    td.refreshTokenExpires == null ||
-    td.refreshTokenExpires.getTime() < new Date().getTime()
+    td.auth.refreshToken == null ||
+    td.auth.refreshTokenExpires == null ||
+    td.auth.refreshTokenExpires.getTime() < new Date().getTime()
   );
 }
 
@@ -68,7 +68,7 @@ async function authenticate(td: TDAmeritrade) {
         client_id: `${td.apiKey}@AMER.OAUTHAP`,
       });
 
-      td.onAuth(`https://auth.tdameritrade.com/auth?${query}`);
+      td.onAuth?.(`https://auth.tdameritrade.com/auth?${query}`);
     });
   });
 }
@@ -94,10 +94,13 @@ async function createAccessToken(code: string, td: TDAmeritrade) {
   );
 
   const today = new Date();
-  td.accessToken = response.data.access_token;
-  td.accessTokenExpires = new Date(today.getTime() + 25 * 60 * 1000);
-  td.refreshToken = response.data.refresh_token;
-  td.refreshTokenExpires = new Date(today.getTime() + 85 * 24 * 60 * 60 * 1000);
+  td.auth.accessToken = response.data.access_token;
+  td.auth.accessTokenExpires = new Date(today.getTime() + 25 * 60 * 1000);
+  td.auth.refreshToken = response.data.refresh_token;
+  td.auth.refreshTokenExpires = new Date(
+    today.getTime() + 85 * 24 * 60 * 60 * 1000
+  );
+  td.onTokens?.(td.auth);
 }
 
 async function refreshAccessToken(td: TDAmeritrade) {
@@ -105,7 +108,7 @@ async function refreshAccessToken(td: TDAmeritrade) {
     '/oauth2/token',
     querystring.stringify({
       grant_type: 'refresh_token',
-      refresh_token: td.refreshToken,
+      refresh_token: td.auth.refreshToken,
       client_id: td.apiKey,
     }),
     {
@@ -116,8 +119,9 @@ async function refreshAccessToken(td: TDAmeritrade) {
   );
 
   const today = new Date();
-  td.accessToken = response.data.access_token;
-  td.accessTokenExpires = new Date(today.getTime() + 25 * 60 * 1000);
+  td.auth.accessToken = response.data.access_token;
+  td.auth.accessTokenExpires = new Date(today.getTime() + 25 * 60 * 1000);
+  td.onTokens?.(td.auth);
 }
 
 async function refreshRefreshToken(td: TDAmeritrade) {
@@ -129,7 +133,7 @@ async function refreshRefreshToken(td: TDAmeritrade) {
     querystring.stringify({
       grant_type: 'refresh_token',
       access_type: 'offline',
-      refresh_token: td.refreshToken,
+      refresh_token: td.auth.refreshToken,
       client_id: td.apiKey,
     }),
     {
@@ -140,8 +144,11 @@ async function refreshRefreshToken(td: TDAmeritrade) {
   );
 
   const today = new Date();
-  td.accessToken = response.data.access_token;
-  td.accessTokenExpires = new Date(today.getTime() + 25 * 60 * 1000);
-  td.refreshToken = response.data.refresh_token;
-  td.refreshTokenExpires = new Date(today.getTime() + 85 * 24 * 60 * 60 * 1000);
+  td.auth.accessToken = response.data.access_token;
+  td.auth.accessTokenExpires = new Date(today.getTime() + 25 * 60 * 1000);
+  td.auth.refreshToken = response.data.refresh_token;
+  td.auth.refreshTokenExpires = new Date(
+    today.getTime() + 85 * 24 * 60 * 60 * 1000
+  );
+  td.onTokens?.(td.auth);
 }

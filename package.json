@@ -6,12 +6,9 @@
   "author": "Justin Fyffe <justinfyffe@gmail.com>",
   "license": "UNLICENSED",
   "scripts": {
-    "build": "tsc"
+    "build": "rm -rf dist && tsc"
   },
   "main": "dist/index.js",
-  "files": [
-    "dist/index.js"
-  ],
   "dependencies": {
     "axios": "^0.21.1",
     "date-fns": "^2.21.1",

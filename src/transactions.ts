@@ -49,7 +49,7 @@ export interface Transaction {
 }
 
 export interface TransactionItem {
-  accountId: number;
+  accountId: string;
   amount: number;
   price: number;
   cost: number;
@@ -82,7 +82,7 @@ export interface GetTransactionsOptions {
 
 export async function getTransaction(
   td: TDAmeritrade,
-  accountId: number,
+  accountId: string,
   transactionId: number
 ) {
   const response = await apiGet<Transaction>(
@@ -95,7 +95,7 @@ export async function getTransaction(
 
 export async function getTransactions(
   td: TDAmeritrade,
-  accountId: number,
+  accountId: string,
   options?: GetTransactionsOptions
 ) {
   const response = await apiGet<Transaction[]>(

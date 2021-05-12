@@ -1,81 +1,41 @@
 import { apiGet } from './client';
-import { OptionType } from './option-chains';
 import { TDAmeritrade } from './tdameritrade';
 
 export enum AssetType {
   Equity = 'EQUITY',
   Etf = 'ETF',
-  Option = 'OPTION',
+  Forex = 'FOREX',
+  Future = 'FUTURE',
+  FutureOption = 'FUTURE_OPTION',
   Index = 'INDEX',
+  Indicator = 'INDICATOR',
   MutualFund = 'MUTUAL_FUND',
-  CashEquivalent = 'CASH_EQUIVALENT',
-  FixedIncome = 'FIXED_INCOME',
-  Currency = 'CURRENCY',
+  Option = 'OPTION',
+  Bond = 'BOND',
+  Unknown = 'UNKNOWN',
 }
 
-export enum MutualFundType {
-  NotApplicable = 'NOT_APPLICABLE',
-  OpenEndNonTaxable = 'OPEN_END_NON_TAXABLE',
-  OpenEndTaxable = 'OPEN_END_TAXABLE',
-  NoLoadNonTaxable = 'NO_LOAD_NON_TAXABLE',
-  NoLoadTaxable = 'NO_LOAD_TAXABLE',
-}
-
-export enum CashEquivalentType {
-  Savings = 'SAVINGS',
-  MoneyMarketFund = 'MONEY_MARKET_FUND',
-}
-
-export enum OptionInstrumentType {
-  Vanilla = 'VANILLA',
-  Binary = 'BINARY',
-  Barrier = 'BARRIER',
-}
-
-interface BaseInstrument {
+export interface Instrument {
   assetType: AssetType;
   cusip: string;
   symbol: string;
   description: string;
-  fundamental?: FundamentalData;
+  exchange: string;
 }
 
-export interface EquityInstrument extends BaseInstrument {
-  assetType: AssetType.Equity;
+export interface FundamentalInstrument extends Instrument {
+  assetType:
+    | AssetType.Equity
+    | AssetType.Etf
+    | AssetType.MutualFund
+    | AssetType.Unknown;
+  fundamental: FundamentalData;
 }
 
-export interface FixedIncomeInstrument extends BaseInstrument {
-  assetType: AssetType.FixedIncome;
-  maturityDate: string;
-  variableRate: number;
-  factor: number;
+export interface BondInstrument extends Instrument {
+  assetType: AssetType.Bond;
+  bondPrice: number;
 }
-
-export interface MututalFundInstrument extends BaseInstrument {
-  assetType: AssetType.MutualFund;
-  type: MutualFundType;
-}
-
-export interface CashEquivalentInstrument extends BaseInstrument {
-  assetType: AssetType.CashEquivalent;
-  type: CashEquivalentType;
-}
-
-export interface OptionInstrument extends BaseInstrument {
-  assetType: AssetType.Option;
-  type: OptionInstrumentType;
-  putCall: OptionType;
-  underlyingSymbol: string;
-  optionMultiplier: number;
-  optionDeliverables: OptionDeliverable[];
-}
-
-export type Instrument =
-  | EquityInstrument
-  | FixedIncomeInstrument
-  | MututalFundInstrument
-  | CashEquivalentInstrument
-  | OptionInstrument;
 
 export interface FundamentalData {
   symbol: string;
@@ -126,13 +86,6 @@ export interface FundamentalData {
   vol3MonthAvg: number;
 }
 
-export interface OptionDeliverable {
-  symbol: string;
-  deliverableUnits: number;
-  currencyType: 'USD' | 'CAD' | 'EUR' | 'JPY';
-  assetType: AssetType;
-}
-
 export enum SearchInstrumentProjection {
   SymbolSearch = 'symbol-search',
   SymbolRegex = 'symbol-regex',
@@ -146,7 +99,7 @@ export async function searchInstruments(
   symbol: string,
   projection: SearchInstrumentProjection
 ) {
-  const response = await apiGet<Instrument[]>(td, 'instruments', {
+  const response = await apiGet<Instrument | Instrument[]>(td, 'instruments', {
     symbol,
     projection,
   });
@@ -156,4 +109,16 @@ export async function searchInstruments(
 export async function getInstrument(td: TDAmeritrade, cusip: string) {
   const response = await apiGet<Instrument>(td, `instruments/${cusip}`);
   return response.data;
+}
+
+export function isFundamentalInstrument(
+  instrument: Instrument
+): instrument is FundamentalInstrument {
+  return 'fundamental' in instrument;
+}
+
+export function isBondInstrument(
+  instrument: Instrument
+): instrument is BondInstrument {
+  return instrument.assetType === AssetType.Bond;
 }

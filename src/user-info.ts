@@ -176,7 +176,7 @@ export interface AccountAuthorizations {
   scottradeAccount: boolean;
 }
 
-export async function getPreferences(td: TDAmeritrade, accountId: number) {
+export async function getPreferences(td: TDAmeritrade, accountId: string) {
   const response = await apiGet<Preferences>(
     td,
     `accounts/${accountId}/preferences`
@@ -186,7 +186,7 @@ export async function getPreferences(td: TDAmeritrade, accountId: number) {
 }
 
 export async function updatePreferences(
-  accountId: number,
+  accountId: string,
   preferences: Preferences
 ) {
   await this.client.put(`accounts/${accountId}/preferences`, preferences);

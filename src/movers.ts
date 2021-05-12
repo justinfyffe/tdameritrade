@@ -1,14 +1,14 @@
 import { apiGet } from './client';
 import { TDAmeritrade } from './tdameritrade';
 
-export enum MoverDirection {
-  Up = 'up',
-  Down = 'down',
-}
-
 export enum MoverChange {
   Percent = 'percent',
   Value = 'value',
+}
+
+export enum MoverDirection {
+  Up = 'up',
+  Down = 'down',
 }
 
 export interface Mover {

@@ -1,10 +1,11 @@
 import {
-  CashAccountCurrentBalance,
-  CashAccountInitialBalance,
-  CashAccountProjectedBalance,
-  MarginAccountCurrentBalance,
-  MarginAccountInitialBalance,
-  MarginAccountProjectedBalance,
+  Balances,
+  CashAccountCurrentBalances,
+  CashAccountInitialBalances,
+  CashAccountProjectedBalances,
+  MarginAccountCurrentBalances,
+  MarginAccountInitialBalances,
+  MarginAccountProjectedBalances,
 } from './balances';
 import { apiGet } from './client';
 import { Order } from './orders';
@@ -16,33 +17,35 @@ export enum AccountType {
   Margin = 'MARGIN',
 }
 
-interface BaseAccount {
+export interface Account {
   type: AccountType;
-  accountId: number;
+  accountId: string;
   roundTrips: number;
   isDayTrader: boolean;
   isClosingOnlyRestricted: boolean;
   positions?: Position[];
   orderStrategies?: Order[];
+
+  initialBalances: Balances;
+  currentBalances: Balances;
+  projectedBalances: Balances;
 }
 
-export interface MarginAccount extends BaseAccount {
+export interface MarginAccount extends Account {
   type: AccountType.Margin;
-  initialBalances: MarginAccountInitialBalance[];
-  currentBalances: MarginAccountCurrentBalance[];
-  projectedBalances: MarginAccountProjectedBalance[];
+  initialBalances: MarginAccountInitialBalances;
+  currentBalances: MarginAccountCurrentBalances;
+  projectedBalances: MarginAccountProjectedBalances;
 }
 
-export interface CashAccount extends BaseAccount {
+export interface CashAccount extends Account {
   type: AccountType.Cash;
-  initialBalances: CashAccountInitialBalance[];
-  currentBalances: CashAccountCurrentBalance[];
-  projectedBalances: CashAccountProjectedBalance[];
+  initialBalances: CashAccountInitialBalances;
+  currentBalances: CashAccountCurrentBalances;
+  projectedBalances: CashAccountProjectedBalances;
 }
 
-export type Account = MarginAccount | CashAccount;
-
-export interface FieldOptions {
+interface FieldOptions {
   positions?: boolean;
   orders?: boolean;
 }
@@ -68,7 +71,7 @@ export async function getAccounts(
 
 export async function getAccount(
   td: TDAmeritrade,
-  accountId: number,
+  accountId: string,
   fieldOptions?: FieldOptions
 ) {
   const fields = [];
@@ -82,4 +85,12 @@ export async function getAccount(
   );
 
   return response.data.securitiesAccount;
+}
+
+export function isCashAccount(account: Account): account is CashAccount {
+  return account.type === AccountType.Cash;
+}
+
+export function isMarginAccount(account: Account): account is MarginAccount {
+  return account.type === AccountType.Margin;
 }

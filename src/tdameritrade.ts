@@ -16,6 +16,17 @@ export interface TDAmeritradeConfig {
   refreshTokenExpires?: Date;
 
   onAuth(oauthUrl: string): void | Promise<void>;
+  onTokens(tokens: TDAmeritradeTokens): void | Promise<void>;
+
+  onPreRequest?: () => void | Promise<void>;
+  onPostRequest?: () => void | Promise<void>;
+}
+
+export interface TDAmeritradeTokens {
+  accessToken: string;
+  accessTokenExpires: Date;
+  refreshToken: string;
+  refreshTokenExpires: Date;
 }
 
 export interface TDAmeritrade {
@@ -25,14 +36,14 @@ export interface TDAmeritrade {
   sslKey: string;
   sslCert: string;
 
-  accessToken: string;
-  accessTokenExpires: Date;
-  refreshToken: string;
-  refreshTokenExpires: Date;
-
+  auth: TDAmeritradeTokens;
   axios: AxiosInstance;
 
-  onAuth(oauthUrl: string): void | Promise<void>;
+  onAuth?: (oauthUrl: string) => void | Promise<void>;
+  onTokens?: (tokens: TDAmeritradeTokens) => void | Promise<void>;
+
+  onPreRequest?: () => void | Promise<void>;
+  onPostRequest?: () => void | Promise<void>;
 }
 
 export async function tdameritrade(config: TDAmeritradeConfig) {
@@ -65,14 +76,20 @@ export async function tdameritrade(config: TDAmeritradeConfig) {
     sslKey: config.sslKey,
     sslCert: config.sslCert,
 
-    accessToken: config.accessToken,
-    accessTokenExpires: config.accessTokenExpires,
-    refreshToken: config.refreshToken,
-    refreshTokenExpires: config.refreshTokenExpires,
+    auth: {
+      accessToken: config.accessToken,
+      accessTokenExpires: config.accessTokenExpires,
+      refreshToken: config.refreshToken,
+      refreshTokenExpires: config.refreshTokenExpires,
+    },
 
     axios: axios.create({ baseURL }),
 
     onAuth: config.onAuth,
+    onTokens: config.onTokens,
+
+    onPreRequest: config.onPreRequest,
+    onPostRequest: config.onPostRequest,
   };
 
   await checkAccess(td);

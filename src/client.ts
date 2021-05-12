@@ -41,14 +41,20 @@ export async function makeRequest<T>(
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   data?: any
 ) {
-  await checkAccess(td);
-  return await td.axios.request<T>({
-    method,
-    url: path,
-    data: querystring.stringify(data),
-    headers: {
-      Authorization: `Bearer ${td.accessToken}`,
-      Accept: 'application/json',
-    },
-  });
+  try {
+    await td?.onPreRequest();
+    await checkAccess(td);
+    const response = await td.axios.request<T>({
+      method,
+      url: path,
+      data: querystring.stringify(data),
+      headers: {
+        Authorization: `Bearer ${td.auth.accessToken}`,
+        Accept: 'application/json',
+      },
+    });
+    return response;
+  } finally {
+    await td?.onPostRequest();
+  }
 }
