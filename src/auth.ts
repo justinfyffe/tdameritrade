@@ -1,3 +1,4 @@
+import axios from 'axios';
 import * as fs from 'fs';
 import * as https from 'https';
 import * as querystring from 'querystring';
@@ -74,7 +75,7 @@ async function authenticate(td: TDAmeritrade) {
 }
 
 async function createAccessToken(code: string, td: TDAmeritrade) {
-  const response = await td.axios.post<{
+  const response = await axios.post<{
     access_token: string;
     refresh_token: string;
   }>(
@@ -87,6 +88,7 @@ async function createAccessToken(code: string, td: TDAmeritrade) {
       redirect_uri: td.redirectUri,
     }),
     {
+      baseURL: td.baseURL,
       headers: {
         'Content-Type': 'application/x-www-form-urlencoded',
       },
@@ -104,7 +106,7 @@ async function createAccessToken(code: string, td: TDAmeritrade) {
 }
 
 async function refreshAccessToken(td: TDAmeritrade) {
-  const response = await td.axios.post<{ access_token: string }>(
+  const response = await axios.post<{ access_token: string }>(
     '/oauth2/token',
     querystring.stringify({
       grant_type: 'refresh_token',
@@ -112,6 +114,7 @@ async function refreshAccessToken(td: TDAmeritrade) {
       client_id: td.apiKey,
     }),
     {
+      baseURL: td.baseURL,
       headers: {
         'Content-Type': 'application/x-www-form-urlencoded',
       },
@@ -125,7 +128,7 @@ async function refreshAccessToken(td: TDAmeritrade) {
 }
 
 async function refreshRefreshToken(td: TDAmeritrade) {
-  const response = await td.axios.post<{
+  const response = await axios.post<{
     access_token: string;
     refresh_token: string;
   }>(
@@ -137,6 +140,7 @@ async function refreshRefreshToken(td: TDAmeritrade) {
       client_id: td.apiKey,
     }),
     {
+      baseURL: td.baseURL,
       headers: {
         'Content-Type': 'application/x-www-form-urlencoded',
       },

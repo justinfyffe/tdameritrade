@@ -255,7 +255,9 @@ export async function cancelOrder(
   accountId: string,
   orderId: number
 ) {
-  await apiDelete(td, `accounts/${accountId}/orders/${orderId}`);
+  await apiDelete(td, `accounts/${accountId}/orders/${orderId}`, {
+    throttle: false,
+  });
 }
 
 export async function getOrder(
@@ -265,7 +267,8 @@ export async function getOrder(
 ) {
   const response = await apiGet<Order>(
     td,
-    `accounts/${accountId}/orders/${orderId}`
+    `accounts/${accountId}/orders/${orderId}`,
+    { throttle: false }
   );
   return response.data;
 }
@@ -275,12 +278,17 @@ export async function getOrders(td: TDAmeritrade, options: GetOrdersOptions) {
     ? `accounts/${options.accountId}/orders`
     : 'orders';
 
-  const response = await apiGet<Order[]>(td, path, {
-    maxResults: options.maxResults || '',
-    fromEnteredTime: format(options.fromEnteredTime, 'yyyy-MM-dd'),
-    toEnteredTime: format(options.toEnteredTime, 'yyyy-MM-dd'),
-    status: options.status || '',
-  });
+  const response = await apiGet<Order[]>(
+    td,
+    path,
+    {
+      maxResults: options.maxResults || '',
+      fromEnteredTime: format(options.fromEnteredTime, 'yyyy-MM-dd'),
+      toEnteredTime: format(options.toEnteredTime, 'yyyy-MM-dd'),
+      status: options.status || '',
+    },
+    { throttle: false }
+  );
 
   return response.data;
 }
@@ -293,7 +301,8 @@ export async function placeOrder(
   const response = await apiPost<Order>(
     td,
     `accounts/${accountId}/orders`,
-    order
+    order,
+    { throttle: false }
   );
 
   return response.data;
@@ -308,7 +317,8 @@ export async function replaceOrder(
   const response = await apiPut<Order>(
     td,
     `accounts/${accountId}/orders/${orderId}`,
-    order
+    order,
+    { throttle: false }
   );
 
   return response.data;

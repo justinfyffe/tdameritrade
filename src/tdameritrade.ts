@@ -1,4 +1,5 @@
-import axios, { AxiosInstance } from 'axios';
+import { Mutex, Semaphore } from 'async-mutex';
+import { AxiosError, AxiosRequestConfig, AxiosResponse } from 'axios';
 import * as fs from 'fs';
 import { checkAccess } from './auth';
 
@@ -15,11 +16,18 @@ export interface TDAmeritradeConfig {
   refreshToken?: string;
   refreshTokenExpires?: Date;
 
+  retries?: number;
+  timeout?: number;
+  maxRequestsPerMinute?: number;
+  maxConcurrentRequests?: number;
+
   onAuth(oauthUrl: string): void | Promise<void>;
   onTokens(tokens: TDAmeritradeTokens): void | Promise<void>;
-
-  onPreRequest?: () => void | Promise<void>;
-  onPostRequest?: () => void | Promise<void>;
+  onRequestQueued?: (request: AxiosRequestConfig) => void | Promise<void>;
+  onRequest?: (request: AxiosRequestConfig) => void | Promise<void>;
+  onResponse?: (response: AxiosResponse) => void | Promise<void>;
+  onRetry?: (error: AxiosError) => void | Promise<void>;
+  onFailed?: (error: AxiosError) => void | Promise<void>;
 }
 
 export interface TDAmeritradeTokens {
@@ -30,20 +38,33 @@ export interface TDAmeritradeTokens {
 }
 
 export interface TDAmeritrade {
-  apiKey: string;
+  readonly apiKey: string;
+  readonly baseURL: string;
 
-  redirectUri: string;
-  sslKey: string;
-  sslCert: string;
+  readonly redirectUri: string;
+  readonly sslKey: string;
+  readonly sslCert: string;
+
+  readonly retries: number;
+  readonly timeout: number;
+  readonly maxRequestsPerMinute: number;
+  readonly maxConcurrentRequests: number;
 
   auth: TDAmeritradeTokens;
-  axios: AxiosInstance;
+  recentRequestTimestamps: number[];
 
-  onAuth?: (oauthUrl: string) => void | Promise<void>;
-  onTokens?: (tokens: TDAmeritradeTokens) => void | Promise<void>;
+  readonly throttleLock: Mutex;
+  readonly requestLock: Semaphore;
 
-  onPreRequest?: () => void | Promise<void>;
-  onPostRequest?: () => void | Promise<void>;
+  readonly onAuth?: (oauthUrl: string) => void | Promise<void>;
+  readonly onTokens?: (tokens: TDAmeritradeTokens) => void | Promise<void>;
+  readonly onRequestQueued?: (
+    request: AxiosRequestConfig
+  ) => void | Promise<void>;
+  readonly onRequest?: (request: AxiosRequestConfig) => void | Promise<void>;
+  readonly onResponse?: (response: AxiosResponse) => void | Promise<void>;
+  readonly onRetry?: (error: AxiosError) => void | Promise<void>;
+  readonly onFailed?: (error: AxiosError) => void | Promise<void>;
 }
 
 export async function tdameritrade(config: TDAmeritradeConfig) {
@@ -67,14 +88,18 @@ export async function tdameritrade(config: TDAmeritradeConfig) {
     throw new Error(`Cannot read SSL cert path: ${config.sslKey}`);
   }
 
-  const baseURL = config.apiUrl ?? 'https://api.tdameritrade.com/v1';
-
   const td: TDAmeritrade = {
     apiKey: config.apiKey,
+    baseURL: config.apiUrl ?? 'https://api.tdameritrade.com/v1',
 
     redirectUri: config.redirectUri,
     sslKey: config.sslKey,
     sslCert: config.sslCert,
+
+    retries: config.retries ?? 0,
+    timeout: config.timeout ?? 10_000,
+    maxRequestsPerMinute: config.maxRequestsPerMinute ?? 120,
+    maxConcurrentRequests: config.maxConcurrentRequests ?? 5,
 
     auth: {
       accessToken: config.accessToken,
@@ -82,14 +107,18 @@ export async function tdameritrade(config: TDAmeritradeConfig) {
       refreshToken: config.refreshToken,
       refreshTokenExpires: config.refreshTokenExpires,
     },
+    recentRequestTimestamps: [],
 
-    axios: axios.create({ baseURL }),
+    throttleLock: new Mutex(),
+    requestLock: new Semaphore(config.maxConcurrentRequests ?? 5),
 
     onAuth: config.onAuth,
     onTokens: config.onTokens,
-
-    onPreRequest: config.onPreRequest,
-    onPostRequest: config.onPostRequest,
+    onRequestQueued: config.onRequestQueued,
+    onRequest: config.onRequest,
+    onResponse: config.onResponse,
+    onRetry: config.onRetry,
+    onFailed: config.onFailed,
   };
 
   await checkAccess(td);

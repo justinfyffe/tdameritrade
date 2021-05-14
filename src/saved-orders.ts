@@ -15,7 +15,8 @@ export async function createSavedOrder(
   const response = await apiPost<SavedOrder>(
     td,
     `accounts/${accountId}/savedorders`,
-    order
+    order,
+    { throttle: false }
   );
 
   return response.data;
@@ -26,7 +27,9 @@ export async function deleteSavedOrder(
   accountId: string,
   savedOrderId: number
 ) {
-  await apiDelete(td, `accounts/${accountId}/savedorders/${savedOrderId}`);
+  await apiDelete(td, `accounts/${accountId}/savedorders/${savedOrderId}`, {
+    throttle: false,
+  });
 }
 
 export async function getSavedOrder(
@@ -36,7 +39,8 @@ export async function getSavedOrder(
 ) {
   const response = await apiGet<SavedOrder>(
     td,
-    `accounts/${accountId}/savedorders/${savedOrderId}`
+    `accounts/${accountId}/savedorders/${savedOrderId}`,
+    { throttle: false }
   );
 
   return response.data;
@@ -45,7 +49,8 @@ export async function getSavedOrder(
 export async function getSavedOrders(td: TDAmeritrade, accountId: string) {
   const response = await apiGet<SavedOrder[]>(
     td,
-    `accounts/${accountId}/savedorders`
+    `accounts/${accountId}/savedorders`,
+    { throttle: false }
   );
 
   return response.data;
@@ -60,7 +65,8 @@ export async function replaceSavedOrder(
   const response = await apiPost<SavedOrder>(
     td,
     `accounts/${accountId}/savedorders/${savedOrderId}`,
-    order
+    order,
+    { throttle: false }
   );
 
   return response.data;
