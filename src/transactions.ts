@@ -1,3 +1,4 @@
+import { format } from 'date-fns';
 import { apiGet } from './client';
 import { TDAmeritrade } from './tdameritrade';
 
@@ -76,8 +77,8 @@ export interface TransactionInstrument {
 export interface GetTransactionsOptions {
   type?: TransactionType;
   symbol?: string;
-  startDate?: string;
-  endDate?: string;
+  startDate?: Date;
+  endDate?: Date;
 }
 
 export async function getTransaction(
@@ -101,7 +102,15 @@ export async function getTransactions(
   const response = await apiGet<Transaction[]>(
     td,
     `accounts/${accountId}/transactions`,
-    options
+    {
+      ...options,
+      startDate: options.startDate
+        ? format(options.startDate, 'yyyy-MM-dd')
+        : undefined,
+      endDate: options.endDate
+        ? format(options.endDate, 'yyyy-MM-dd')
+        : undefined,
+    }
   );
 
   return response.data;

@@ -94,12 +94,16 @@ export enum SearchInstrumentProjection {
   Fundamental = 'fundamental',
 }
 
+export interface SearchInstrumentsResponse {
+  [symbol: string]: Instrument;
+}
+
 export async function searchInstruments(
   td: TDAmeritrade,
   symbol: string,
   projection: SearchInstrumentProjection
 ) {
-  const response = await apiGet<Instrument | Instrument[]>(td, 'instruments', {
+  const response = await apiGet<SearchInstrumentsResponse>(td, 'instruments', {
     symbol,
     projection,
   });

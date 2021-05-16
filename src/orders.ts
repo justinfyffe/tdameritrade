@@ -245,8 +245,8 @@ export interface OrderLegCollection {
 export interface GetOrdersOptions {
   accountId?: number;
   maxResults?: number;
-  fromEnteredTime: Date;
-  toEnteredTime: Date;
+  fromEnteredTime?: Date;
+  toEnteredTime?: Date;
   status?: OrderStatus;
 }
 
@@ -283,8 +283,12 @@ export async function getOrders(td: TDAmeritrade, options: GetOrdersOptions) {
     path,
     {
       maxResults: options.maxResults || '',
-      fromEnteredTime: format(options.fromEnteredTime, 'yyyy-MM-dd'),
-      toEnteredTime: format(options.toEnteredTime, 'yyyy-MM-dd'),
+      fromEnteredTime: options.fromEnteredTime
+        ? format(options.fromEnteredTime, 'yyyy-MM-dd')
+        : undefined,
+      toEnteredTime: options.toEnteredTime
+        ? format(options.toEnteredTime, 'yyyy-MM-dd')
+        : undefined,
       status: options.status || '',
     },
     { throttle: false }
