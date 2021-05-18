@@ -58,23 +58,26 @@ export async function makeRequest<T>(
   data?: any,
   options?: RequestOptions
 ) {
+  const throttled = options?.throttle ?? true;
+
   const request = buildRequest(td, method, path, data);
-  await td.onRequestQueued?.(request);
+  await td.onRequestQueued?.({ request, throttled });
 
   let releaseLock: SemaphoreInterface.Releaser;
-  if (options?.throttle ?? true) {
+  if (throttled) {
     // We only want a few requests at a time to prevent breaching rate limits
     const [_value, release] = await td.requestLock.acquire();
     releaseLock = release;
   }
 
-  await td.onRequest?.(request);
+  await td.onRequest?.({ request, throttled });
 
   let response: AxiosResponse<T>;
   let retryCounter = 0;
+  let success = true;
 
   do {
-    if (options?.throttle ?? true) {
+    if (throttled) {
       // Throttle the requests to avoid blowing through the rate limit
       await throttle(td);
     }
@@ -89,16 +92,19 @@ export async function makeRequest<T>(
       retryCounter++;
 
       if (retryCounter <= td.retries) {
-        await td.onRetry(error);
+        await td.onRetry({ request, error, throttled });
       } else {
-        await td.onFailed(error);
+        success = false;
+        await td.onFailed({ request, error, throttled });
       }
     }
   } while (retryCounter <= td.retries);
 
-  await td.onResponse?.(response);
+  if (success) {
+    await td.onResponse?.({ request, response, throttled });
+  }
 
-  if (options?.throttle ?? true) {
+  if (throttled) {
     // Request is over, release lock so another request can try again.
     releaseLock();
   }

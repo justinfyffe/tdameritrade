@@ -62,12 +62,9 @@ export async function getAccounts(
   fieldOptions?.positions && fields.push('positions');
   fieldOptions?.orders && fields.push('orders');
 
-  const response = await apiGet<GetAccountResponse[]>(
-    td,
-    'accounts',
-    { fields: fields.join(',') },
-    { throttle: false }
-  );
+  const response = await apiGet<GetAccountResponse[]>(td, 'accounts', {
+    fields: fields.join(','),
+  });
 
   return response.data.map((data) => data.securitiesAccount);
 }
@@ -84,8 +81,7 @@ export async function getAccount(
   const response = await apiGet<GetAccountResponse>(
     td,
     `accounts/${accountId}`,
-    { fields: fields.join(',') },
-    { throttle: false }
+    { fields: fields.join(',') }
   );
 
   return response.data.securitiesAccount;

@@ -3,6 +3,30 @@ import { AxiosError, AxiosRequestConfig, AxiosResponse } from 'axios';
 import * as fs from 'fs';
 import { checkAccess } from './auth';
 
+export interface TDAmeritradeTokens {
+  accessToken: string;
+  accessTokenExpires: Date;
+  refreshToken: string;
+  refreshTokenExpires: Date;
+}
+
+export interface TDAmeritradeRequest {
+  request: AxiosRequestConfig;
+  throttled: boolean;
+}
+
+export interface TDAmeritradeResponse {
+  request: AxiosRequestConfig;
+  response: AxiosResponse;
+  throttled: boolean;
+}
+
+export interface TDAmeritradeError {
+  request: AxiosRequestConfig;
+  error: AxiosError;
+  throttled: boolean;
+}
+
 export interface TDAmeritradeConfig {
   apiKey: string;
   apiUrl?: string;
@@ -23,18 +47,11 @@ export interface TDAmeritradeConfig {
 
   onAuth(oauthUrl: string): void | Promise<void>;
   onTokens(tokens: TDAmeritradeTokens): void | Promise<void>;
-  onRequestQueued?: (request: AxiosRequestConfig) => void | Promise<void>;
-  onRequest?: (request: AxiosRequestConfig) => void | Promise<void>;
-  onResponse?: (response: AxiosResponse) => void | Promise<void>;
-  onRetry?: (error: AxiosError) => void | Promise<void>;
-  onFailed?: (error: AxiosError) => void | Promise<void>;
-}
-
-export interface TDAmeritradeTokens {
-  accessToken: string;
-  accessTokenExpires: Date;
-  refreshToken: string;
-  refreshTokenExpires: Date;
+  onRequestQueued?: (request: TDAmeritradeRequest) => void | Promise<void>;
+  onRequest?: (request: TDAmeritradeRequest) => void | Promise<void>;
+  onResponse?: (response: TDAmeritradeResponse) => void | Promise<void>;
+  onRetry?: (error: TDAmeritradeError) => void | Promise<void>;
+  onFailed?: (error: TDAmeritradeError) => void | Promise<void>;
 }
 
 export interface TDAmeritrade {
@@ -59,12 +76,14 @@ export interface TDAmeritrade {
   readonly onAuth?: (oauthUrl: string) => void | Promise<void>;
   readonly onTokens?: (tokens: TDAmeritradeTokens) => void | Promise<void>;
   readonly onRequestQueued?: (
-    request: AxiosRequestConfig
+    request: TDAmeritradeRequest
   ) => void | Promise<void>;
-  readonly onRequest?: (request: AxiosRequestConfig) => void | Promise<void>;
-  readonly onResponse?: (response: AxiosResponse) => void | Promise<void>;
-  readonly onRetry?: (error: AxiosError) => void | Promise<void>;
-  readonly onFailed?: (error: AxiosError) => void | Promise<void>;
+  readonly onRequest?: (request: TDAmeritradeRequest) => void | Promise<void>;
+  readonly onResponse?: (
+    response: TDAmeritradeResponse
+  ) => void | Promise<void>;
+  readonly onRetry?: (error: TDAmeritradeError) => void | Promise<void>;
+  readonly onFailed?: (error: TDAmeritradeError) => void | Promise<void>;
 }
 
 export async function tdameritrade(config: TDAmeritradeConfig) {
