@@ -1,232 +1,126 @@
 import { apiGet } from './client';
 import { TDAmeritrade } from './tdameritrade';
 
-export interface MutualFundQuote {
-  symbol: string;
-  description: string;
-  closePrice: number;
-  netChange: number;
-  totalVolume: number;
-  tradeTimeInLong: number;
-  exchange: string;
-  exchangeName: string;
-  digits: number;
-  '52WkHigh': number;
-  '52WkLow': number;
-  nAV: number;
-  peRatio: number;
-  divAmount: number;
-  divYield: number;
-  divDate: string;
-  securityStatus: string;
-}
-
-export interface FutureQuote {
-  symbol: string;
-  bidPriceInDouble: number;
-  askPriceInDouble: number;
-  lastPriceInDouble: number;
-  bidId: string;
-  askId: string;
-  highPriceInDouble: number;
-  lowPriceInDouble: number;
-  closePriceInDouble: number;
-  exchange: string;
-  description: string;
-  lastId: string;
-  openPriceInDouble: number;
-  changeInDouble: number;
-  futurePercentChange: number;
-  exchangeName: string;
-  securityStatus: string;
-  openInterest: number;
-  mark: number;
-  tick: number;
-  tickAmount: number;
-  product: string;
-  futurePriceFormat: string;
-  futureTradingHours: string;
-  futureIsTradable: boolean;
-  futureMultiplier: number;
-  futureIsActive: boolean;
-  futureSettlementPrice: number;
-  futureActiveSymbol: string;
-  futureExpirationDate: string;
-}
-
-export interface FutureOptionQuote {
-  symbol: string;
-  bidPriceInDouble: number;
-  askPriceInDouble: number;
-  lastPriceInDouble: number;
-  highPriceInDouble: number;
-  lowPriceInDouble: number;
-  closePriceInDouble: number;
-  description: string;
-  openPriceInDouble: number;
-  netChangeInDouble: number;
-  openInterest: number;
-  exchangeName: string;
-  securityStatus: string;
-  volatility: number;
-  moneyIntrinsicValueInDouble: number;
-  multiplierInDouble: number;
-  digits: number;
-  strikePriceInDouble: number;
-  contractType: string;
-  underlying: string;
-  timeValueInDouble: number;
-  deltaInDouble: number;
-  gammaInDouble: number;
-  thetaInDouble: number;
-  vegaInDouble: number;
-  rhoInDouble: number;
-  mark: number;
-  tick: number;
-  tickAmount: number;
-  futureIsTradable: boolean;
-  futureTradingHours: string;
-  futurePercentChange: number;
-  futureIsActive: boolean;
-  futureExpirationDate: number;
-  expirationType: string;
-  exerciseType: string;
-  inTheMoney: boolean;
-}
-
-export interface IndexQuote {
-  symbol: string;
-  description: string;
-  lastPrice: number;
-  openPrice: number;
-  highPrice: number;
-  lowPrice: number;
-  closePrice: number;
-  netChange: number;
-  totalVolume: number;
-  tradeTimeInLong: number;
-  exchange: string;
-  exchangeName: string;
-  digits: number;
-  '52WkHigh': number;
-  '52WkLow': number;
-  securityStatus: string;
+export enum AssetType {
+  Equity = 'EQUITY',
+  Etf = 'ETF',
+  Option = 'OPTION',
 }
 
 export interface OptionQuote {
-  symbol: string;
-  description: string;
+  askPrice: number;
+  askSize: number;
+  assetMainType: AssetType.Option;
+  assetType: AssetType.Option;
   bidPrice: number;
   bidSize: number;
-  askPrice: number;
-  lastPrice: number;
-  lastSize: number;
-  openPrice: number;
-  highPrice: number;
-  lowPrice: number;
   closePrice: number;
-  netChange: number;
-  totalVolume: number;
-  quoteTimeInLong: number;
-  tradeTimeInLong: number;
-  mark: number;
-  openInterest: number;
-  volatility: number;
-  moneyIntrinsicValue: number;
-  multiplier: number;
-  strikePrice: number;
   contractType: string;
-  underlying: string;
-  timeValue: number;
+  cusip: string;
+  daysToExpiration: number;
+  delayed: boolean;
   deliverables: string;
   delta: number;
+  description: string;
+  digits: number;
+  exchange: string;
+  exchangeName: string;
+  expirationDay: number;
+  expirationMonth: number;
+  expirationYear: number;
   gamma: number;
-  theta: number;
-  vega: number;
+  highPrice: number;
+  impliedYield: number;
+  isPennyPilot: boolean;
+  lastPrice: number;
+  lastSize: number;
+  lastTradingDay: number;
+  lowPrice: number;
+  mark: number;
+  markChangeInDouble: number;
+  markPercentChangeInDouble: number;
+  moneyIntrinsicValue: number;
+  multiplier: number;
+  netChange: number;
+  netPercentChangeInDouble: number;
+  openInterest: number;
+  openPrice: number;
+  quoteTimeInLong: number;
+  realtimeEntitled: boolean;
   rho: number;
   securityStatus: string;
+  settlementType: string;
+  strikePrice: number;
+  symbol: string;
   theoreticalOptionValue: number;
+  theta: number;
+  timeValue: number;
+  totalVolume: number;
+  tradeTimeInLong: number;
+  underlying: string;
   underlyingPrice: number;
   uvExpirationType: string;
-  exchange: string;
-  exchangeName: string;
-  settlementType: string;
-}
-
-export interface ForexQuote {
-  symbol: string;
-  bidPriceInDouble: number;
-  askPriceInDouble: number;
-  lastPriceInDouble: number;
-  highPriceInDouble: number;
-  lowPriceInDouble: number;
-  closePriceInDouble: number;
-  exchange: string;
-  description: string;
-  openPriceInDouble: number;
-  changeInDouble: number;
-  percentChange: number;
-  exchangeName: string;
-  digits: number;
-  securityStatus: string;
-  tick: number;
-  tickAmount: number;
-  product: string;
-  tradingHours: string;
-  isTradable: boolean;
-  '52WkHighInDouble': number;
-  '52WkLowInDouble': number;
-  mark: number;
+  vega: number;
+  volatility: number;
 }
 
 export interface EquityQuote {
-  symbol: string;
-  description: string;
-  bidPrice: number;
-  bidSize: number;
-  bidId: string;
-  askPrice: number;
-  askSize: number;
-  askId: string;
-  lastPrice: number;
-  lastSize: number;
-  lastId: string;
-  openPrice: number;
-  highPrice: number;
-  lowPrice: number;
-  closePrice: number;
-  netChange: number;
-  totalVolume: number;
-  quoteTimeInLong: number;
-  tradeTimeInLong: number;
-  mark: number;
-  exchange: string;
-  exchangeName: string;
-  marginable: boolean;
-  shortable: boolean;
-  volatility: number;
-  digits: number;
   '52WkHigh': number;
   '52WkLow': number;
-  peRatio: number;
+  askId: string;
+  askPrice: number;
+  askSize: number;
+  assetMainType: AssetType.Equity;
+  assetSubType?: AssetType.Etf;
+  assetType: AssetType.Equity | AssetType.Etf;
+  bidId: string;
+  bidPrice: number;
+  bidSize: number;
+  bidTick: string;
+  closePrice: number;
+  cusip: string;
+  delayed: boolean;
+  description: string;
+  digits: number;
   divAmount: number;
-  divYield: number;
   divDate: string;
-  securityStatus: string;
+  divYield: number;
+  exchange: string;
+  exchangeName: string;
+  highPrice: number;
+  lastId: string;
+  lastPrice: number;
+  lastSize: number;
+  lowPrice: number;
+  marginable: boolean;
+  mark: number;
+  markChangeInDouble: number;
+  markPercentChangeInDouble: number;
+  nAV: number;
+  netChange: number;
+  netPercentChangeInDouble: number;
+  openPrice: number;
+  peRatio: number;
+  quoteTimeInLong: number;
+  realtimeEntitled: boolean;
   regularMarketLastPrice: number;
   regularMarketLastSize: number;
   regularMarketNetChange: number;
+  regularMarketPercentChangeInDouble: number;
   regularMarketTradeTimeInLong: number;
+  securityStatus: string;
+  shortable: boolean;
+  symbol: string;
+  totalVolume: number;
+  tradeTimeInLong: number;
+  volatility: number;
 }
 
-type Quote =
-  | MutualFundQuote
-  | FutureQuote
-  | FutureOptionQuote
-  | IndexQuote
-  | OptionQuote
-  | ForexQuote
-  | EquityQuote;
+export type Quote = OptionQuote | EquityQuote;
+
+export interface GetQuotesResponse {
+  [symbol: string]: Quote;
+}
 
 export async function getQuote(td: TDAmeritrade, symbol: string) {
   const response = await apiGet<Quote>(td, `marketdata/${symbol}/quotes`);
@@ -235,47 +129,17 @@ export async function getQuote(td: TDAmeritrade, symbol: string) {
 }
 
 export async function getQuotes(td: TDAmeritrade, symbols: string[]) {
-  const response = await await apiGet<Quote[]>(td, 'marketdata/quotes', {
+  const response = await apiGet<GetQuotesResponse>(td, 'marketdata/quotes', {
     symbol: symbols.join(','),
   });
 
   return response.data;
 }
 
-export function isMutualFundQuote(quote: Quote): quote is MutualFundQuote {
-  return 'nAV' in quote;
-}
-
-export function isFutureQuote(quote: Quote): quote is FutureQuote {
-  return (
-    'futureMultiplier' in quote ||
-    'futurePriceFormat' in quote ||
-    'futureSettlementPrice' in quote ||
-    'futureActiveSymbol' in quote
-  );
-}
-
-export function isFutureOptionQuote(quote: Quote): quote is FutureOptionQuote {
-  return 'contractType' in quote && 'futureExpirationDate' in quote;
-}
-
-export function isIndexQuote(quote: Quote): quote is IndexQuote {
-  return (
-    'totalVolume' in quote &&
-    !isEquityQuote(quote) &&
-    !isMutualFundQuote(quote) &&
-    !isOptionQuote(quote)
-  );
-}
-
 export function isOptionQuote(quote: Quote): quote is OptionQuote {
-  return 'delta' in quote && !isFutureOptionQuote(quote);
-}
-
-export function isForexQuote(quote: Quote): quote is ForexQuote {
-  return 'isTradable' in quote;
+  return quote.assetMainType === 'OPTION';
 }
 
 export function isEquityQuote(quote: Quote): quote is EquityQuote {
-  return 'shortable' in quote;
+  return quote.assetMainType === 'EQUITY';
 }

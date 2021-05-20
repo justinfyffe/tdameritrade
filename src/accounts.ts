@@ -1,11 +1,10 @@
 import {
-  Balances,
-  CashAccountCurrentBalances,
-  CashAccountInitialBalances,
-  CashAccountProjectedBalances,
+  CurrentBalances,
+  InitialBalances,
   MarginAccountCurrentBalances,
   MarginAccountInitialBalances,
   MarginAccountProjectedBalances,
+  ProjectedBalances,
 } from './balances';
 import { apiGet } from './client';
 import { Order } from './orders';
@@ -18,31 +17,27 @@ export enum AccountType {
 }
 
 export interface Account {
-  type: AccountType;
   accountId: string;
-  roundTrips: number;
-  isDayTrader: boolean;
+  currentBalances: CurrentBalances;
+  initialBalances: InitialBalances;
   isClosingOnlyRestricted: boolean;
-  positions?: Position[];
+  isDayTrader: boolean;
   orderStrategies?: Order[];
-
-  initialBalances: Balances;
-  currentBalances: Balances;
-  projectedBalances: Balances;
+  positions?: Position[];
+  projectedBalances: ProjectedBalances;
+  roundTrips: number;
+  type: AccountType;
 }
 
 export interface MarginAccount extends Account {
   type: AccountType.Margin;
-  initialBalances: MarginAccountInitialBalances;
   currentBalances: MarginAccountCurrentBalances;
+  initialBalances: MarginAccountInitialBalances;
   projectedBalances: MarginAccountProjectedBalances;
 }
 
 export interface CashAccount extends Account {
   type: AccountType.Cash;
-  initialBalances: CashAccountInitialBalances;
-  currentBalances: CashAccountCurrentBalances;
-  projectedBalances: CashAccountProjectedBalances;
 }
 
 interface FieldOptions {

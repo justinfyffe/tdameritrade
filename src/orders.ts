@@ -74,12 +74,6 @@ export enum OrderLegPositionEffect {
   Automatic = 'AUTOMATIC',
 }
 
-export enum OrderLegQuantityType {
-  AllShares = 'ALL_SHARES',
-  Dollars = 'DOLLARS',
-  Shares = 'SHARES',
-}
-
 export enum OrderLegType {
   Equity = 'EQUITY',
   Option = 'OPTION',
@@ -90,35 +84,11 @@ export enum OrderLegType {
   Currency = 'CURRENCY',
 }
 
-export enum OrderPriceLinkBasis {
-  Manual = 'MANUAL',
-  Base = 'BASE',
-  Trigger = 'TRIGGER',
-  Last = 'LAST',
-  Bid = 'BID',
-  Ask = 'ASK',
-  AskBid = 'ASK_BID',
-  Mark = 'MARK',
-  Average = 'AVERAGE',
-}
-
-export enum OrderPriceLinkType {
-  Value = 'VALUE',
-  Percent = 'PERCENT',
-  Tick = 'TICK',
-}
-
 export enum OrderSession {
   Normal = 'NORMAL',
   AM = 'AM',
   PM = 'PM',
   Seamless = 'SEAMLESS',
-}
-
-export enum OrderSpecialInstruction {
-  AllOrNone = 'ALL_OR_NONE',
-  DoNotReduce = 'DO_NOT_REDUCE',
-  AllOrNoneDoNotReduce = 'ALL_OR_NONE_DO_NOT_REDUCE',
 }
 
 export enum OrderStatus {
@@ -139,27 +109,10 @@ export enum OrderStatus {
   Expired = 'EXPIRED',
 }
 
-export enum OrderStopType {
-  Standard = 'STANDARD',
-  Bid = 'BID',
-  Ask = 'ASK',
-  Last = 'LAST',
-  Mark = 'MARK',
-}
-
 export enum OrderStrategyType {
   Single = 'SINGLE',
   OCO = 'OCO',
   Trigger = 'TRIGGER',
-}
-
-export enum OrderTaxLotMethod {
-  FIFO = 'FIFO',
-  LIFO = 'LIFO',
-  HighCost = 'HIGH_COST',
-  LowCost = 'LOW_COST',
-  AverageCost = 'AVERAGE_COST',
-  SpecificLot = 'SPECIFIC_LOT',
 }
 
 export enum OrderType {
@@ -173,47 +126,26 @@ export enum OrderType {
 }
 
 export interface Order {
-  session: OrderSession;
-  duration: OrderDuration;
-  orderType: OrderType;
-  cancelTime: OrderCancelTime;
+  accountId: number;
+  cancelable: boolean;
+  closeTime: string;
   complexOrderStrategyType: ComplexOrderStrategyType;
-  quantity: number;
+  destinationLinkName: string;
+  duration: OrderDuration;
+  editable: boolean;
+  enteredTime: string;
   filledQuantity: number;
+  orderActivityCollection?: OrderExecution[];
+  orderId: number;
+  orderLegCollection: OrderLegCollection[];
+  orderStrategyType: OrderStrategyType;
+  orderType: OrderType;
+  price: number;
+  quantity: number;
   remainingQuantity: number;
   requestedDestination: OrderDestination;
-  destinationLinkName: string;
-  releaseTime: string;
-  stopPrice: number;
-  stopPriceLinkBasis: OrderPriceLinkBasis;
-  stopPriceLinkType: OrderPriceLinkType;
-  stopPriceOffset: number;
-  stopType: OrderStopType;
-  priceLinkBasis: OrderPriceLinkBasis;
-  priceLinkType: OrderPriceLinkType;
-  price: number;
-  taxLotMethod: OrderTaxLotMethod;
-  orderLegCollection: OrderLegCollection[];
-  activationPrice: number;
-  specialInstruction: OrderSpecialInstruction;
-  orderStrategyType: OrderStrategyType;
-  orderId: number;
-  cancelable: boolean;
-  editable: boolean;
+  session: OrderSession;
   status: OrderStatus;
-  enteredTime: string;
-  closeTime: string;
-  tag: string;
-  accountId: string;
-  orderActivityCollection: OrderExecution[];
-  replacingOrderCollection: OrderExecution[];
-  childOrderStrategies: Order[];
-  statusDescription: string;
-}
-
-export interface OrderCancelTime {
-  date: string;
-  shortFormat: boolean;
 }
 
 export interface OrderExecution {
@@ -226,20 +158,19 @@ export interface OrderExecution {
 
 export interface OrderExecutionLeg {
   legId: number;
-  quantity: number;
   mismarkedQuantity: number;
   price: number;
+  quantity: number;
   time: string;
 }
 
 export interface OrderLegCollection {
-  orderLegType: OrderLegType;
-  legId: number;
-  instrument: Instrument;
   instruction: OrderLegInstruction;
+  instrument: Instrument;
+  legId: number;
+  orderLegType: OrderLegType;
   positionEffect: OrderLegPositionEffect;
   quantity: number;
-  quantityType: OrderLegQuantityType;
 }
 
 export interface GetOrdersOptions {

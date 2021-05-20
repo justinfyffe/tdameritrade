@@ -1,104 +1,80 @@
-interface MarginBalances {
+export interface MarginAccountCurrentBalances {
   accruedInterest: number;
+  availableFunds: number;
   availableFundsNonMarginableTrade: number;
   bondValue: number;
   buyingPower: number;
+  buyingPowerNonMarginableTrade: number;
   cashBalance: number;
   cashReceipts: number;
   dayTradingBuyingPower: number;
-  dayTradingBuyingPowerCall: number;
   equity: number;
   equityPercentage: number;
   liquidationValue: number;
   longMarginValue: number;
+  longMarketValue: number;
   longOptionMarketValue: number;
   maintenanceCall: number;
   maintenanceRequirement: number;
+  marginBalance: number;
+  moneyMarketFund: number;
+  pendingDeposits: number;
+  regTCall: number;
+  savings: number;
+  shortBalance: number;
+  shortMarginValue: number;
+  shortMarketValue: number;
+  shortOptionMarketValue: number;
+  sma: number;
+}
+
+export interface MarginAccountInitialBalances {
+  accountValue: number;
+  accruedInterest: number;
+  availableFundsNonMarginableTrade: number;
+  bondValue: number;
+  buyingPower: number;
+  cashAvailableForTrading: number;
+  cashBalance: number;
+  cashReceipts: number;
+  dayTradingBuyingPower: number;
+  dayTradingBuyingPowerCall: number;
+  dayTradingEquityCall: number;
+  equity: number;
+  equityPercentage: number;
+  isInCall: boolean;
+  liquidationValue: number;
+  longMarginValue: number;
+  longOptionMarketValue: number;
+  longStockValue: number;
+  maintenanceCall: number;
+  maintenanceRequirement: number;
+  margin: number;
+  marginBalance: number;
+  marginEquity: number;
   moneyMarketFund: number;
   mutualFundValue: number;
   pendingDeposits: number;
   regTCall: number;
-  shortMarginValue: number;
-  isInCall: boolean;
-  marginBalance: number;
   shortBalance: number;
+  shortMarginValue: number;
   shortOptionMarketValue: number;
-}
-
-export interface MarginAccountInitialBalances extends MarginBalances {
-  cashAvailableForTrading: number;
-  dayTradingEquityCall: number;
-  longStockValue: number;
-  margin: number;
-  marginEquity: number;
   shortStockValue: number;
   totalCash: number;
-  unsettledCash: number;
-  accountValue: number;
 }
 
-export interface MarginAccountCurrentBalances extends MarginBalances {
-  longMarketValue: number;
-  savings: number;
-  shortMarketValue: number;
+export interface MarginAccountProjectedBalances {
   availableFunds: number;
-  buyingPowerNonMarginableTrade: number;
-  sma: number;
-  stockBuyingPower: number;
-  optionBuyingPower: number;
-}
-
-export interface MarginAccountProjectedBalances extends MarginBalances {
-  longMarketValue: number;
-  savings: number;
-  shortMarketValue: number;
-  availableFunds: number;
-  buyingPowerNonMarginableTrade: number;
-  sma: number;
-  stockBuyingPower: number;
-  optionBuyingPower: number;
-}
-
-interface CashBalances {
-  accruedInterest: number;
-  bondValue: number;
-  cashAvailableForTrading: number;
-  cashAvailableForWithdrawal: number;
-  cashBalance: number;
-  cashDebitCallValue: number;
-  cashReceipts: number;
-  liquidationValue: number;
-  longOptionMarketValue: number;
-  moneyMarketFund: number;
-  mutualFundValue: number;
-  pendingDeposits: number;
-  shortOptionMarketValue: number;
-  unsettledCash: number;
-}
-
-export interface CashAccountInitialBalances extends CashBalances {
-  longStockValue: number;
-  shortStockValue: number;
+  availableFundsNonMarginableTrade: number;
+  buyingPower: number;
+  dayTradingBuyingPower: number;
+  dayTradingBuyingPowerCall: number;
   isInCall: boolean;
-  accountValue: number;
+  maintenanceCall: number;
+  regTCall: number;
+  stockBuyingPower: number;
 }
 
-export interface CashAccountCurrentBalances extends CashBalances {
-  longMarketValue: number;
-  savings: number;
-  shortMarketValue: number;
-  cashCall: number;
-  longNonMarginableMarketValue: number;
-  totalCash: number;
-}
-
-export interface CashAccountProjectedBalances extends CashBalances {
-  longMarketValue: number;
-  savings: number;
-  shortMarketValue: number;
-  cashCall: number;
-  longNonMarginableMarketValue: number;
-  totalCash: number;
-}
-
-export type Balances = MarginBalances | CashBalances;
+export type CurrentBalances = MarginAccountCurrentBalances;
+export type InitialBalances = MarginAccountInitialBalances;
+export type ProjectedBalances = MarginAccountProjectedBalances;

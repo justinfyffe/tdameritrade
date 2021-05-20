@@ -2,6 +2,12 @@ import { format } from 'date-fns';
 import { apiGet } from './client';
 import { TDAmeritrade } from './tdameritrade';
 
+export enum AssetType {
+  CashEquivalent = 'CASH_EQUIVALENT',
+  Equity = 'EQUITY',
+  Option = 'OPTION',
+}
+
 export enum TransactionType {
   Trade = 'TRADE',
   ReceiveAndDeliver = 'RECEIVE_AND_DELIVER',
@@ -27,51 +33,164 @@ export enum AchStatus {
   Error = 'Error',
 }
 
-export interface Transaction {
-  type: TransactionType;
-  clearingReferenceNumber: string;
-  subAccount: string;
-  settlementDate: string;
-  orderId: string;
-  sma: number;
-  requirementReallocationAmount: number;
-  dayTradeBuyingPowerEffect: number;
-  netAmount: number;
-  transactionDate: string;
-  orderDate: string;
-  transactionSubType: string;
-  transactionId: number;
+export interface DividendOrInterestTransaction {
   cashBalanceEffectFlag: boolean;
   description: string;
-  achStatus: AchStatus;
-  accruedInterest: number;
-  fees: unknown;
-  transactionItem: TransactionItem;
+  fees: TransactionFees;
+  netAmount: number;
+  settlementDate: string;
+  subAccount: string;
+  transactionDate: string;
+  transactionId: number;
+  transactionItem: {
+    accountId: number;
+    cost: number;
+    instrument: TransactionInstrument;
+  };
+  transactionSubType: string;
+  type: TransactionType.DividendOrInterest;
 }
 
-export interface TransactionItem {
-  accountId: string;
-  amount: number;
-  price: number;
-  cost: number;
-  parentOrderKey: number;
-  parentChildIndicator: string;
-  instruction: string;
-  positionEffect: string;
-  instrument: TransactionInstrument;
+export interface ElectronicFundTransaction {
+  achStatus?: AchStatus;
+  cashBalanceEffectFlag: boolean;
+  clearingReferenceNumber?: string;
+  description: string;
+  fees: TransactionFees;
+  netAmount: number;
+  settlementDate: string;
+  subAccount: string;
+  transactionDate: string;
+  transactionId: number;
+  transactionItem: {
+    accountId: number;
+    cost: number;
+  };
+  transactionSubType: string;
+  type: TransactionType.ElectronicFund;
 }
 
-export interface TransactionInstrument {
+export interface JournalTransaction {
+  cashBalanceEffectFlag: boolean;
+  description: string;
+  fees: TransactionFees;
+  netAmount: number;
+  settlementDate: string;
+  subAccount: string;
+  transactionDate: string;
+  transactionId: number;
+  transactionItem: {
+    accountId: number;
+    cost: number;
+  };
+  transactionSubType: string;
+  type: TransactionType.Journal;
+}
+
+export interface ReceiveAndDeliverTransaction {
+  cashBalanceEffectFlag: boolean;
+  description: string;
+  fees: TransactionFees;
+  netAmount: number;
+  settlementDate: string;
+  subAccount: string;
+  transactionDate: string;
+  transactionId: number;
+  transactionItem: {
+    accountId: number;
+    amount: number;
+    cost: number;
+    instrument: TransactionInstrument;
+  };
+  transactionSubType: string;
+  type: TransactionType.ReceiveAndDeliver;
+}
+
+export interface TradeTransaction {
+  cashBalanceEffectFlag: boolean;
+  description: string;
+  fees: TransactionFees;
+  netAmount: number;
+  orderDate: string;
+  orderId: string;
+  settlementDate: string;
+  subAccount: string;
+  transactionDate: string;
+  transactionId: number;
+  transactionItem: {
+    accountId: number;
+    amount: number;
+    cost: number;
+    instruction: string;
+    instrument: TransactionInstrument;
+    price: number;
+  };
+  transactionSubType: string;
+  type: TransactionType.Trade;
+}
+
+export interface WireInTransaction {
+  cashBalanceEffectFlag: boolean;
+  description: string;
+  fees: TransactionFees;
+  netAmount: number;
+  settlementDate: string;
+  subAccount: string;
+  transactionDate: string;
+  transactionId: number;
+  transactionItem: {
+    accountId: number;
+    cost: number;
+  };
+  transactionSubType: string;
+  type: TransactionType.WireIn;
+}
+
+export type Transaction =
+  | DividendOrInterestTransaction
+  | ElectronicFundTransaction
+  | JournalTransaction
+  | ReceiveAndDeliverTransaction
+  | TradeTransaction
+  | WireInTransaction;
+
+export interface CashEquivalentInstrument {
+  assetType: AssetType.CashEquivalent;
+  cusip: string;
+  symbol: string;
+  type: string;
+}
+
+export interface EquityTransactionInstrument {
+  assetType: AssetType.Equity;
+  cusip: string;
+  symbol: string;
+}
+
+export interface OptionTransactionInstrument {
+  assetType: AssetType.Option;
+  cusip: string;
+  description: string;
   symbol: string;
   underlyingSymbol: string;
   optionExpirationDate: string;
-  optionStrikePrice: number;
   putCall: string;
-  cusip: string;
-  description: string;
-  assetType: string;
-  bondMaturityDate: string;
-  bondInterestRate: number;
+}
+
+export type TransactionInstrument =
+  | CashEquivalentInstrument
+  | EquityTransactionInstrument
+  | OptionTransactionInstrument;
+
+export interface TransactionFees {
+  additionalFee: number;
+  cdscFee: number;
+  commission: number;
+  optRegFee: number;
+  otherCharges: number;
+  rFee: number;
+  regFee: number;
+  secFee: number;
 }
 
 export interface GetTransactionsOptions {
