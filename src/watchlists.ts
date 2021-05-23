@@ -79,7 +79,7 @@ export async function getWatchlist(
     td,
     `accounts/${accountId}/watchlists/${watchlistId}`
   );
-  return response.data;
+  return response?.data;
 }
 
 export async function getWatchlists(td: TDAmeritrade, accountId?: string) {
@@ -89,7 +89,7 @@ export async function getWatchlists(td: TDAmeritrade, accountId?: string) {
       : 'accounts/watchlists';
 
   const response = await apiGet<Watchlist[]>(td, path);
-  return response.data;
+  return response?.data;
 }
 
 export async function replaceWatchlist(

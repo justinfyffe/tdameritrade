@@ -4,10 +4,10 @@ import * as fs from 'fs';
 import { checkAccess } from './auth';
 
 export interface TDAmeritradeTokens {
-  accessToken: string;
-  accessTokenExpires: Date;
-  refreshToken: string;
-  refreshTokenExpires: Date;
+  accessToken?: string;
+  accessTokenExpires?: Date;
+  refreshToken?: string;
+  refreshTokenExpires?: Date;
 }
 
 export interface TDAmeritradeRequest {
@@ -21,7 +21,22 @@ export interface TDAmeritradeResponse {
   throttled: boolean;
 }
 
-export interface TDAmeritradeError {
+export interface TDAmeritradeRetry extends TDAmeritradeErrorContext {}
+
+export class TDAmeritradeError extends Error {
+  request: AxiosRequestConfig;
+  error: AxiosError;
+  throttled: boolean;
+
+  constructor(context: TDAmeritradeErrorContext) {
+    super('An error has occurred while calling TD Ameritrade');
+    this.request = context.request;
+    this.error = context.error;
+    this.throttled = context.throttled;
+  }
+}
+
+interface TDAmeritradeErrorContext {
   request: AxiosRequestConfig;
   error: AxiosError;
   throttled: boolean;
@@ -50,7 +65,7 @@ export interface TDAmeritradeConfig {
   onRequestQueued?: (request: TDAmeritradeRequest) => void | Promise<void>;
   onRequest?: (request: TDAmeritradeRequest) => void | Promise<void>;
   onResponse?: (response: TDAmeritradeResponse) => void | Promise<void>;
-  onRetry?: (error: TDAmeritradeError) => void | Promise<void>;
+  onRetry?: (retry: TDAmeritradeRetry) => void | Promise<void>;
   onFailed?: (error: TDAmeritradeError) => void | Promise<void>;
 }
 
@@ -82,7 +97,7 @@ export interface TDAmeritrade {
   readonly onResponse?: (
     response: TDAmeritradeResponse
   ) => void | Promise<void>;
-  readonly onRetry?: (error: TDAmeritradeError) => void | Promise<void>;
+  readonly onRetry?: (retry: TDAmeritradeRetry) => void | Promise<void>;
   readonly onFailed?: (error: TDAmeritradeError) => void | Promise<void>;
 }
 

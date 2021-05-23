@@ -210,7 +210,7 @@ export async function getTransaction(
     `accounts/${accountId}/transactions/${transactionId}`
   );
 
-  return response.data;
+  return response?.data;
 }
 
 export async function getTransactions(
@@ -223,14 +223,14 @@ export async function getTransactions(
     `accounts/${accountId}/transactions`,
     {
       ...options,
-      startDate: options.startDate
+      startDate: options?.startDate
         ? format(options.startDate, 'yyyy-MM-dd')
         : undefined,
-      endDate: options.endDate
+      endDate: options?.endDate
         ? format(options.endDate, 'yyyy-MM-dd')
         : undefined,
     }
   );
 
-  return response.data;
+  return response?.data;
 }

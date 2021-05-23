@@ -23,7 +23,24 @@ export interface MarketHours {
   marketType: MarketType;
   product: string;
   productName: string;
-  sessionHours: unknown;
+  sessionHours: MarketSessionHours;
+}
+
+export interface MarketSessionHours {
+  preMarket?: MarketSessionDuration[];
+  regularMarket: MarketSessionDuration[];
+  postMarket?: MarketSessionDuration[];
+}
+
+export interface MarketSessionDuration {
+  start: string;
+  end: string;
+}
+
+export interface MarketHoursResponse {
+  [marketType: string]: {
+    [product: string]: MarketHours;
+  };
 }
 
 export async function getMarketHours(
@@ -39,6 +56,6 @@ export async function getMarketHours(
     ? { date: date.toISOString(), markets }
     : { date: date.toISOString() };
 
-  const response = await apiGet<MarketHours | MarketHours[]>(td, path, query);
-  return response.data;
+  const response = await apiGet<MarketHoursResponse>(td, path, query);
+  return response?.data;
 }

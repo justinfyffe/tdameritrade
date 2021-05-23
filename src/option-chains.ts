@@ -180,13 +180,13 @@ export async function getOptionChain(
 ) {
   const query = {
     ...options,
-    fromDate: options.fromDate?.toISOString() || undefined,
-    toDate: options.toDate?.toISOString() || undefined,
+    fromDate: options?.fromDate?.toISOString() ?? undefined,
+    toDate: options?.toDate?.toISOString() ?? undefined,
     symbol,
   };
 
   const response = await apiGet<OptionChain>(td, 'marketdata/chains', query);
-  return response.data;
+  return response?.data;
 }
 
 export function getCallOptions(optionChain: OptionChain) {

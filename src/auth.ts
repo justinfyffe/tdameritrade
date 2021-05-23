@@ -38,8 +38,13 @@ async function authenticate(td: TDAmeritrade) {
     };
 
     const server = https.createServer(serverOptions, async (req, res) => {
-      const requestUrl = new URL(req.url, 'http://127.0.0.1:8443');
+      if (req.url == null) {
+        res.writeHead(422);
+        res.write('Missing path');
+        return res.end();
+      }
 
+      const requestUrl = new URL(req.url, 'http://127.0.0.1:8443');
       if (!requestUrl.searchParams.has('code')) {
         res.writeHead(422);
         res.write('Authorization code is required');
@@ -47,7 +52,7 @@ async function authenticate(td: TDAmeritrade) {
       }
 
       try {
-        await createAccessToken(requestUrl.searchParams.get('code'), td);
+        await createAccessToken(requestUrl.searchParams.get('code')!, td);
 
         res.writeHead(204);
         res.end();

@@ -53,7 +53,7 @@ export async function getAccounts(
   td: TDAmeritrade,
   fieldOptions?: FieldOptions
 ) {
-  const fields = [];
+  const fields: string[] = [];
   fieldOptions?.positions && fields.push('positions');
   fieldOptions?.orders && fields.push('orders');
 
@@ -61,7 +61,7 @@ export async function getAccounts(
     fields: fields.join(','),
   });
 
-  return response.data.map((data) => data.securitiesAccount);
+  return response?.data?.map((data) => data.securitiesAccount);
 }
 
 export async function getAccount(
@@ -69,7 +69,7 @@ export async function getAccount(
   accountId: string,
   fieldOptions?: FieldOptions
 ) {
-  const fields = [];
+  const fields: string[] = [];
   fieldOptions?.positions && fields.push('positions');
   fieldOptions?.orders && fields.push('orders');
 
@@ -79,7 +79,7 @@ export async function getAccount(
     { fields: fields.join(',') }
   );
 
-  return response.data.securitiesAccount;
+  return response?.data?.securitiesAccount;
 }
 
 export function isCashAccount(account: Account): account is CashAccount {

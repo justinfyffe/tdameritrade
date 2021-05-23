@@ -125,7 +125,7 @@ export interface GetQuotesResponse {
 export async function getQuote(td: TDAmeritrade, symbol: string) {
   const response = await apiGet<Quote>(td, `marketdata/${symbol}/quotes`);
 
-  return response.data;
+  return response?.data;
 }
 
 export async function getQuotes(td: TDAmeritrade, symbols: string[]) {
@@ -133,7 +133,7 @@ export async function getQuotes(td: TDAmeritrade, symbols: string[]) {
     symbol: symbols.join(','),
   });
 
-  return response.data;
+  return response?.data;
 }
 
 export function isOptionQuote(quote: Quote): quote is OptionQuote {

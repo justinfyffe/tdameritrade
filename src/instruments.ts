@@ -90,12 +90,12 @@ export async function searchInstruments(
     symbol,
     projection,
   });
-  return response.data;
+  return response?.data;
 }
 
 export async function getInstrument(td: TDAmeritrade, cusip: string) {
   const response = await apiGet<Instrument>(td, `instruments/${cusip}`);
-  return response.data;
+  return response?.data;
 }
 
 export function isFundamentalInstrument(

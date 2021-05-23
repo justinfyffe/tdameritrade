@@ -2,7 +2,7 @@ import { SemaphoreInterface } from 'async-mutex';
 import axios, { AxiosRequestConfig, AxiosResponse } from 'axios';
 import * as querystring from 'querystring';
 import { checkAccess } from './auth';
-import { TDAmeritrade } from './tdameritrade';
+import { TDAmeritrade, TDAmeritradeError } from './tdameritrade';
 
 export interface TDAmeritradeRequest extends AxiosRequestConfig {}
 export interface TDAmeritradeResponse extends AxiosResponse {}
@@ -59,8 +59,13 @@ export async function makeRequest<T>(
   options?: RequestOptions
 ) {
   const throttled = options?.throttle ?? true;
-
   const request = buildRequest(td, method, path, data);
+
+  let response: AxiosResponse<T> | null = null;
+  let error: TDAmeritradeError | null = null;
+  let success = true;
+  let retryCounter = 0;
+
   await td.onRequestQueued?.({ request, throttled });
 
   let releaseLock: SemaphoreInterface.Releaser;
@@ -71,10 +76,6 @@ export async function makeRequest<T>(
   }
 
   await td.onRequest?.({ request, throttled });
-
-  let response: AxiosResponse<T>;
-  let retryCounter = 0;
-  let success = true;
 
   do {
     if (throttled) {
@@ -88,28 +89,33 @@ export async function makeRequest<T>(
 
       // Break out of the loop
       retryCounter = td.retries + 1;
-    } catch (error) {
+    } catch (e) {
       retryCounter++;
 
       if (retryCounter <= td.retries) {
-        await td.onRetry({ request, error, throttled });
+        await td.onRetry?.({ request, error: e, throttled });
       } else {
         success = false;
-        await td.onFailed({ request, error, throttled });
+        error = new TDAmeritradeError({ request, error: e, throttled });
+        await td.onFailed?.(error);
       }
     }
   } while (retryCounter <= td.retries);
 
-  if (success) {
+  if (success && response != null) {
     await td.onResponse?.({ request, response, throttled });
   }
 
   if (throttled) {
     // Request is over, release lock so another request can try again.
-    releaseLock();
+    releaseLock!();
   }
 
-  return response;
+  if (!success && error != null) {
+    throw error;
+  }
+
+  return response!;
 }
 
 async function throttle(td: TDAmeritrade) {

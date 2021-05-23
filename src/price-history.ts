@@ -37,5 +37,5 @@ export async function getPriceHistory(
     options
   );
 
-  return response.data;
+  return response?.data;
 }

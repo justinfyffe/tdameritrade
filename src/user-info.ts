@@ -182,7 +182,7 @@ export async function getPreferences(td: TDAmeritrade, accountId: string) {
     `accounts/${accountId}/preferences`
   );
 
-  return response.data;
+  return response?.data;
 }
 
 export async function updatePreferences(
@@ -202,7 +202,7 @@ export async function getStreamerSubscriptionKeys(
     { accountIds: accountIds.join(',') }
   );
 
-  return response.data;
+  return response?.data;
 }
 
 export async function getUserPrincipals(
@@ -212,5 +212,5 @@ export async function getUserPrincipals(
   const response = await apiGet<UserPrincipal>(td, 'userprincipals', {
     fields: fields.join(','),
   });
-  return response.data;
+  return response?.data;
 }

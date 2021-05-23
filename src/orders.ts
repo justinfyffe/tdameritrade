@@ -174,7 +174,7 @@ export interface OrderLegCollection {
 }
 
 export interface GetOrdersOptions {
-  accountId?: number;
+  accountId?: string;
   maxResults?: number;
   fromEnteredTime?: Date;
   toEnteredTime?: Date;
@@ -199,9 +199,10 @@ export async function getOrder(
   const response = await apiGet<Order>(
     td,
     `accounts/${accountId}/orders/${orderId}`,
+    null,
     { throttle: false }
   );
-  return response.data;
+  return response?.data;
 }
 
 export async function getOrders(td: TDAmeritrade, options: GetOrdersOptions) {
@@ -225,7 +226,7 @@ export async function getOrders(td: TDAmeritrade, options: GetOrdersOptions) {
     { throttle: false }
   );
 
-  return response.data;
+  return response?.data;
 }
 
 export async function placeOrder(
@@ -240,7 +241,7 @@ export async function placeOrder(
     { throttle: false }
   );
 
-  return response.data;
+  return response?.data;
 }
 
 export async function replaceOrder(
@@ -256,5 +257,5 @@ export async function replaceOrder(
     { throttle: false }
   );
 
-  return response.data;
+  return response?.data;
 }

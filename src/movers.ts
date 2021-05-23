@@ -35,5 +35,5 @@ export async function getMovers(
     `marketdata/${index}/movers`,
     movement
   );
-  return response.data;
+  return response?.data;
 }

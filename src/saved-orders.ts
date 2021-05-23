@@ -18,7 +18,7 @@ export async function createSavedOrder(
     order
   );
 
-  return response.data;
+  return response?.data;
 }
 
 export async function deleteSavedOrder(
@@ -39,7 +39,7 @@ export async function getSavedOrder(
     `accounts/${accountId}/savedorders/${savedOrderId}`
   );
 
-  return response.data;
+  return response?.data;
 }
 
 export async function getSavedOrders(td: TDAmeritrade, accountId: string) {
@@ -48,7 +48,7 @@ export async function getSavedOrders(td: TDAmeritrade, accountId: string) {
     `accounts/${accountId}/savedorders`
   );
 
-  return response.data;
+  return response?.data;
 }
 
 export async function replaceSavedOrder(
@@ -63,5 +63,5 @@ export async function replaceSavedOrder(
     order
   );
 
-  return response.data;
+  return response?.data;
 }

@@ -4,6 +4,7 @@
         "declaration": true,
         "outDir": "./dist",
         "module": "commonjs",
+        "strictNullChecks": true,
         "target": "es2015"
     },
     "include": ["src"]
