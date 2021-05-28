@@ -135,9 +135,9 @@ export interface Order {
   editable: boolean;
   enteredTime: string;
   filledQuantity: number;
-  orderActivityCollection?: OrderExecution[];
+  orderActivityCollection?: OrderActivity[];
   orderId: number;
-  orderLegCollection: OrderLegCollection[];
+  orderLegCollection: OrderLeg[];
   orderStrategyType: OrderStrategyType;
   orderType: OrderType;
   price: number;
@@ -148,7 +148,7 @@ export interface Order {
   status: OrderStatus;
 }
 
-export interface OrderExecution {
+export interface OrderActivity {
   activityType: OrderActivityType;
   executionLegs: OrderExecutionLeg[];
   executionType: OrderExecutionType;
@@ -164,7 +164,7 @@ export interface OrderExecutionLeg {
   time: string;
 }
 
-export interface OrderLegCollection {
+export interface OrderLeg {
   instruction: OrderLegInstruction;
   instrument: Instrument;
   legId: number;
