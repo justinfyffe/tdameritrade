@@ -1,53 +1,40 @@
-import { SemaphoreInterface } from 'async-mutex';
 import axios, { AxiosRequestConfig, AxiosResponse } from 'axios';
 import * as querystring from 'querystring';
-import { checkAccess } from './auth';
 import { TDAmeritrade, TDAmeritradeError } from './tdameritrade';
 
 export interface TDAmeritradeRequest extends AxiosRequestConfig {}
 export interface TDAmeritradeResponse extends AxiosResponse {}
 
-interface RequestOptions {
-  throttle?: boolean;
-}
-
 export async function apiGet<T = unknown>(
   td: TDAmeritrade,
   path: string,
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  data?: any,
-  options?: RequestOptions
+  data?: any
 ) {
   const query = data != null ? `?${querystring.stringify(data)}` : '';
-  return await makeRequest<T>(td, 'get', `/${path}${query}`, null, options);
+  return await makeRequest<T>(td, 'get', `/${path}${query}`, null);
 }
 
 export async function apiPost<T = unknown>(
   td: TDAmeritrade,
   path: string,
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  data?: any,
-  options?: RequestOptions
+  data?: any
 ) {
-  return await makeRequest<T>(td, 'post', path, data, options);
+  return await makeRequest<T>(td, 'post', path, data);
 }
 
 export async function apiPut<T = unknown>(
   td: TDAmeritrade,
   path: string,
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  data?: any,
-  options?: RequestOptions
+  data?: any
 ) {
-  return await makeRequest<T>(td, 'put', path, data, options);
+  return await makeRequest<T>(td, 'put', path, data);
 }
 
-export async function apiDelete(
-  td: TDAmeritrade,
-  path: string,
-  options?: RequestOptions
-) {
-  return await makeRequest(td, 'delete', path, options);
+export async function apiDelete(td: TDAmeritrade, path: string) {
+  return await makeRequest(td, 'delete', path);
 }
 
 export async function makeRequest<T>(
@@ -55,10 +42,8 @@ export async function makeRequest<T>(
   method: 'get' | 'post' | 'put' | 'delete',
   path: string,
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  data?: any,
-  options?: RequestOptions
+  data?: any
 ) {
-  const throttled = options?.throttle ?? true;
   const request = buildRequest(td, method, path, data);
 
   let response: AxiosResponse<T> | null = null;
@@ -66,25 +51,11 @@ export async function makeRequest<T>(
   let success = true;
   let retryCounter = 0;
 
-  await td.onRequestQueued?.({ request, throttled });
-
-  let releaseLock: SemaphoreInterface.Releaser;
-  if (throttled) {
-    // We only want a few requests at a time to prevent breaching rate limits
-    const [_value, release] = await td.requestLock.acquire();
-    releaseLock = release;
-  }
-
-  await td.onRequest?.({ request, throttled });
-
   do {
-    if (throttled) {
-      // Throttle the requests to avoid blowing through the rate limit
-      await throttle(td);
-    }
-
     try {
-      await checkAccess(td);
+      const request = buildRequest(td, method, path, data);
+      await td.onRequest?.({ request });
+
       response = await axios.request<T>(buildRequest(td, method, path, data));
 
       // Break out of the loop
@@ -93,22 +64,17 @@ export async function makeRequest<T>(
       retryCounter++;
 
       if (retryCounter <= td.retries) {
-        await td.onRetry?.({ request, error: e, throttled });
+        await td.onRetry?.({ request, error: e });
       } else {
         success = false;
-        error = new TDAmeritradeError({ request, error: e, throttled });
+        error = new TDAmeritradeError({ request, error: e });
         await td.onFailed?.(error);
       }
     }
   } while (retryCounter <= td.retries);
 
   if (success && response != null) {
-    await td.onResponse?.({ request, response, throttled });
-  }
-
-  if (throttled) {
-    // Request is over, release lock so another request can try again.
-    releaseLock!();
+    await td.onResponse?.({ request, response });
   }
 
   if (!success && error != null) {
@@ -116,40 +82,6 @@ export async function makeRequest<T>(
   }
 
   return response!;
-}
-
-async function throttle(td: TDAmeritrade) {
-  const releaseLock = await td.throttleLock.acquire();
-
-  if (hasExceededRateLimit(td)) {
-    await delay(getThrottleTime(td));
-  }
-
-  td.recentRequestTimestamps.push(new Date().getTime());
-
-  releaseLock();
-}
-
-function hasExceededRateLimit(td: TDAmeritrade) {
-  const oneMinuteAgo = new Date().getTime() - 60_000;
-  td.recentRequestTimestamps = td.recentRequestTimestamps.filter(
-    (timestamp) => timestamp >= oneMinuteAgo
-  );
-  return td.recentRequestTimestamps.length > td.maxRequestsPerMinute;
-}
-
-function getThrottleTime(td: TDAmeritrade) {
-  if (td.recentRequestTimestamps.length < td.maxRequestsPerMinute) {
-    return 0;
-  }
-
-  const timeSinceEarliestRequest =
-    new Date().getTime() - td.recentRequestTimestamps[0];
-  return 60_000 - timeSinceEarliestRequest;
-}
-
-function delay(ms: number) {
-  return new Promise((resolve) => setTimeout(resolve, ms));
 }
 
 function buildRequest(

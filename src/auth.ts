@@ -4,17 +4,14 @@ import * as https from 'https';
 import * as querystring from 'querystring';
 import { TDAmeritrade } from './tdameritrade';
 
-export async function checkAccess(td: TDAmeritrade) {
-  if (td.auth.accessToken == null || td.auth.refreshToken == null) {
-    await authenticate(td);
-  } else if (hasRefreshTokenExpired(td)) {
-    await refreshRefreshToken(td);
-  } else if (hasAccessTokenExpired(td)) {
-    await refreshAccessToken(td);
-  }
+const ACCESS_TOKEN_EXPIRES = 25 * 60 * 1000; // 25 minutes
+const REFRESH_TOKEN_EXPIRES = 75 * 24 * 60 * 60 * 1000; // 75 days
+
+export function hasAuthentication(td: TDAmeritrade) {
+  return td.auth.accessToken != null && td.auth.refreshToken != null;
 }
 
-function hasAccessTokenExpired(td: TDAmeritrade) {
+export function hasAccessTokenExpired(td: TDAmeritrade) {
   return (
     td.auth.accessToken == null ||
     td.auth.accessTokenExpires == null ||
@@ -22,7 +19,7 @@ function hasAccessTokenExpired(td: TDAmeritrade) {
   );
 }
 
-function hasRefreshTokenExpired(td: TDAmeritrade) {
+export function hasRefreshTokenExpired(td: TDAmeritrade) {
   return (
     td.auth.refreshToken == null ||
     td.auth.refreshTokenExpires == null ||
@@ -30,11 +27,79 @@ function hasRefreshTokenExpired(td: TDAmeritrade) {
   );
 }
 
-async function authenticate(td: TDAmeritrade) {
+export async function refreshAccessToken(td: TDAmeritrade) {
+  const response = await axios.post<{ access_token: string }>(
+    '/oauth2/token',
+    querystring.stringify({
+      grant_type: 'refresh_token',
+      refresh_token: td.auth.refreshToken,
+      client_id: td.apiKey,
+    }),
+    {
+      baseURL: td.baseURL,
+      headers: {
+        'Content-Type': 'application/x-www-form-urlencoded',
+      },
+    }
+  );
+
+  const today = new Date();
+  td.auth.accessToken = response.data.access_token;
+  td.auth.accessTokenExpires = new Date(today.getTime() + ACCESS_TOKEN_EXPIRES);
+  td.onTokens?.(td.auth);
+}
+
+export async function refreshRefreshToken(td: TDAmeritrade) {
+  const response = await axios.post<{
+    access_token: string;
+    refresh_token: string;
+  }>(
+    '/oauth2/token',
+    querystring.stringify({
+      grant_type: 'refresh_token',
+      access_type: 'offline',
+      refresh_token: td.auth.refreshToken,
+      client_id: td.apiKey,
+    }),
+    {
+      baseURL: td.baseURL,
+      headers: {
+        'Content-Type': 'application/x-www-form-urlencoded',
+      },
+    }
+  );
+
+  const today = new Date();
+  td.auth.accessToken = response.data.access_token;
+  td.auth.accessTokenExpires = new Date(today.getTime() + ACCESS_TOKEN_EXPIRES);
+  td.auth.refreshToken = response.data.refresh_token;
+  td.auth.refreshTokenExpires = new Date(
+    today.getTime() + REFRESH_TOKEN_EXPIRES
+  );
+  td.onTokens?.(td.auth);
+}
+
+export async function authenticate(td: TDAmeritrade) {
+  if (!td.sslKey) {
+    throw new Error('Missing `sslKey` property');
+  }
+
+  if (!fs.existsSync(td.sslKey)) {
+    throw new Error(`Cannot read SSL key path: ${td.sslKey}`);
+  }
+
+  if (!td.sslCert) {
+    throw new Error('Missing `sslCert` config property');
+  }
+
+  if (!fs.existsSync(td.sslCert)) {
+    throw new Error(`Cannot read SSL cert path: ${td.sslKey}`);
+  }
+
   return new Promise<void>((resolve, reject) => {
     const serverOptions = {
-      key: fs.readFileSync(td.sslKey),
-      cert: fs.readFileSync(td.sslCert),
+      key: fs.readFileSync(td.sslKey!),
+      cert: fs.readFileSync(td.sslCert!),
     };
 
     const server = https.createServer(serverOptions, async (req, res) => {
@@ -66,7 +131,7 @@ async function authenticate(td: TDAmeritrade) {
       }
     });
 
-    const { port, hostname } = new URL(td.redirectUri);
+    const { port, hostname } = new URL(td.redirectUri!);
     server.listen(Number(port), hostname, () => {
       const query = querystring.stringify({
         response_type: 'code',
@@ -102,62 +167,10 @@ async function createAccessToken(code: string, td: TDAmeritrade) {
 
   const today = new Date();
   td.auth.accessToken = response.data.access_token;
-  td.auth.accessTokenExpires = new Date(today.getTime() + 25 * 60 * 1000);
+  td.auth.accessTokenExpires = new Date(today.getTime() + ACCESS_TOKEN_EXPIRES);
   td.auth.refreshToken = response.data.refresh_token;
   td.auth.refreshTokenExpires = new Date(
-    today.getTime() + 85 * 24 * 60 * 60 * 1000
-  );
-  td.onTokens?.(td.auth);
-}
-
-async function refreshAccessToken(td: TDAmeritrade) {
-  const response = await axios.post<{ access_token: string }>(
-    '/oauth2/token',
-    querystring.stringify({
-      grant_type: 'refresh_token',
-      refresh_token: td.auth.refreshToken,
-      client_id: td.apiKey,
-    }),
-    {
-      baseURL: td.baseURL,
-      headers: {
-        'Content-Type': 'application/x-www-form-urlencoded',
-      },
-    }
-  );
-
-  const today = new Date();
-  td.auth.accessToken = response.data.access_token;
-  td.auth.accessTokenExpires = new Date(today.getTime() + 25 * 60 * 1000);
-  td.onTokens?.(td.auth);
-}
-
-async function refreshRefreshToken(td: TDAmeritrade) {
-  const response = await axios.post<{
-    access_token: string;
-    refresh_token: string;
-  }>(
-    '/oauth2/token',
-    querystring.stringify({
-      grant_type: 'refresh_token',
-      access_type: 'offline',
-      refresh_token: td.auth.refreshToken,
-      client_id: td.apiKey,
-    }),
-    {
-      baseURL: td.baseURL,
-      headers: {
-        'Content-Type': 'application/x-www-form-urlencoded',
-      },
-    }
-  );
-
-  const today = new Date();
-  td.auth.accessToken = response.data.access_token;
-  td.auth.accessTokenExpires = new Date(today.getTime() + 25 * 60 * 1000);
-  td.auth.refreshToken = response.data.refresh_token;
-  td.auth.refreshTokenExpires = new Date(
-    today.getTime() + 85 * 24 * 60 * 60 * 1000
+    today.getTime() + REFRESH_TOKEN_EXPIRES
   );
   td.onTokens?.(td.auth);
 }

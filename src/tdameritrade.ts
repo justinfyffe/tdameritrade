@@ -1,7 +1,4 @@
-import { Mutex, Semaphore } from 'async-mutex';
 import { AxiosError, AxiosRequestConfig, AxiosResponse } from 'axios';
-import * as fs from 'fs';
-import { checkAccess } from './auth';
 
 export interface TDAmeritradeTokens {
   accessToken?: string;
@@ -12,13 +9,11 @@ export interface TDAmeritradeTokens {
 
 export interface TDAmeritradeRequest {
   request: AxiosRequestConfig;
-  throttled: boolean;
 }
 
 export interface TDAmeritradeResponse {
   request: AxiosRequestConfig;
   response: AxiosResponse;
-  throttled: boolean;
 }
 
 export interface TDAmeritradeRetry extends TDAmeritradeErrorContext {}
@@ -26,29 +21,26 @@ export interface TDAmeritradeRetry extends TDAmeritradeErrorContext {}
 export class TDAmeritradeError extends Error {
   request: AxiosRequestConfig;
   error: AxiosError;
-  throttled: boolean;
 
   constructor(context: TDAmeritradeErrorContext) {
     super('An error has occurred while calling TD Ameritrade');
     this.request = context.request;
     this.error = context.error;
-    this.throttled = context.throttled;
   }
 }
 
 interface TDAmeritradeErrorContext {
   request: AxiosRequestConfig;
   error: AxiosError;
-  throttled: boolean;
 }
 
 export interface TDAmeritradeConfig {
   apiKey: string;
   apiUrl?: string;
 
-  sslKey: string;
-  sslCert: string;
-  redirectUri: string;
+  sslKey?: string;
+  sslCert?: string;
+  redirectUri?: string;
 
   accessToken?: string;
   accessTokenExpires?: Date;
@@ -57,12 +49,9 @@ export interface TDAmeritradeConfig {
 
   retries?: number;
   timeout?: number;
-  maxRequestsPerMinute?: number;
-  maxConcurrentRequests?: number;
 
-  onAuth(oauthUrl: string): void | Promise<void>;
-  onTokens(tokens: TDAmeritradeTokens): void | Promise<void>;
-  onRequestQueued?: (request: TDAmeritradeRequest) => void | Promise<void>;
+  onAuth?(oauthUrl: string): void | Promise<void>;
+  onTokens?(tokens: TDAmeritradeTokens): void | Promise<void>;
   onRequest?: (request: TDAmeritradeRequest) => void | Promise<void>;
   onResponse?: (response: TDAmeritradeResponse) => void | Promise<void>;
   onRetry?: (retry: TDAmeritradeRetry) => void | Promise<void>;
@@ -73,26 +62,17 @@ export interface TDAmeritrade {
   readonly apiKey: string;
   readonly baseURL: string;
 
-  readonly redirectUri: string;
-  readonly sslKey: string;
-  readonly sslCert: string;
+  readonly redirectUri?: string;
+  readonly sslKey?: string;
+  readonly sslCert?: string;
 
   readonly retries: number;
   readonly timeout: number;
-  readonly maxRequestsPerMinute: number;
-  readonly maxConcurrentRequests: number;
 
   auth: TDAmeritradeTokens;
-  recentRequestTimestamps: number[];
-
-  readonly throttleLock: Mutex;
-  readonly requestLock: Semaphore;
 
   readonly onAuth?: (oauthUrl: string) => void | Promise<void>;
   readonly onTokens?: (tokens: TDAmeritradeTokens) => void | Promise<void>;
-  readonly onRequestQueued?: (
-    request: TDAmeritradeRequest
-  ) => void | Promise<void>;
   readonly onRequest?: (request: TDAmeritradeRequest) => void | Promise<void>;
   readonly onResponse?: (
     response: TDAmeritradeResponse
@@ -106,22 +86,6 @@ export async function tdameritrade(config: TDAmeritradeConfig) {
     throw new Error('Missing `apiKey` property');
   }
 
-  if (!config.sslKey) {
-    throw new Error('Missing `sslKey` property');
-  }
-
-  if (!fs.existsSync(config.sslKey)) {
-    throw new Error(`Cannot read SSL key path: ${config.sslKey}`);
-  }
-
-  if (!config.sslCert) {
-    throw new Error('Missing `sslCert` config property');
-  }
-
-  if (!fs.existsSync(config.sslCert)) {
-    throw new Error(`Cannot read SSL cert path: ${config.sslKey}`);
-  }
-
   const td: TDAmeritrade = {
     apiKey: config.apiKey,
     baseURL: config.apiUrl ?? 'https://api.tdameritrade.com/v1',
@@ -132,8 +96,6 @@ export async function tdameritrade(config: TDAmeritradeConfig) {
 
     retries: config.retries ?? 0,
     timeout: config.timeout ?? 10_000,
-    maxRequestsPerMinute: config.maxRequestsPerMinute ?? 120,
-    maxConcurrentRequests: config.maxConcurrentRequests ?? 5,
 
     auth: {
       accessToken: config.accessToken,
@@ -141,21 +103,14 @@ export async function tdameritrade(config: TDAmeritradeConfig) {
       refreshToken: config.refreshToken,
       refreshTokenExpires: config.refreshTokenExpires,
     },
-    recentRequestTimestamps: [],
-
-    throttleLock: new Mutex(),
-    requestLock: new Semaphore(config.maxConcurrentRequests ?? 5),
 
     onAuth: config.onAuth,
     onTokens: config.onTokens,
-    onRequestQueued: config.onRequestQueued,
     onRequest: config.onRequest,
     onResponse: config.onResponse,
     onRetry: config.onRetry,
     onFailed: config.onFailed,
   };
-
-  await checkAccess(td);
 
   return td;
 }

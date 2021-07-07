@@ -6,11 +6,11 @@
   "author": "Justin Fyffe <justinfyffe@gmail.com>",
   "license": "UNLICENSED",
   "scripts": {
-    "build": "rm -rf dist && tsc"
+    "clean": "rm -rf lib",
+    "build": "npm run clean && tsc && cp package.json ./lib"
   },
-  "main": "dist/index.js",
+  "files": ["./**/*"],
   "dependencies": {
-    "async-mutex": "^0.3.1",
     "axios": "^0.21.1",
     "date-fns": "^2.21.1",
     "querystring": "^0.2.1"

@@ -2,7 +2,7 @@
     "compileOnSave": false,
     "compilerOptions": {
         "declaration": true,
-        "outDir": "./dist",
+        "outDir": "./lib",
         "module": "commonjs",
         "strictNullChecks": true,
         "target": "es2015"
