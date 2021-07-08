@@ -6,10 +6,12 @@
   "author": "Justin Fyffe <justinfyffe@gmail.com>",
   "license": "UNLICENSED",
   "scripts": {
-    "clean": "rm -rf lib",
+    "clean": "rimraf lib",
     "build": "npm run clean && tsc && cp package.json ./lib"
   },
-  "files": ["./**/*"],
+  "files": [
+    "./**/*"
+  ],
   "dependencies": {
     "axios": "^0.21.1",
     "date-fns": "^2.21.1",
@@ -26,6 +28,7 @@
     "eslint-plugin-prettier": "^3.3.1",
     "eslint-plugin-simple-import-sort": "^7.0.0",
     "prettier": "^2.2.1",
+    "rimraf": "^3.0.2",
     "ts-node": "^9.1.1",
     "typescript": "^4.2.3"
   }

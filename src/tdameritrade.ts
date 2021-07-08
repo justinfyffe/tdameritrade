@@ -2,9 +2,9 @@ import { AxiosError, AxiosRequestConfig, AxiosResponse } from 'axios';
 
 export interface TDAmeritradeTokens {
   accessToken?: string;
-  accessTokenExpires?: Date;
+  accessTokenExpires?: number;
   refreshToken?: string;
-  refreshTokenExpires?: Date;
+  refreshTokenExpires?: number;
 }
 
 export interface TDAmeritradeRequest {
@@ -43,9 +43,9 @@ export interface TDAmeritradeConfig {
   redirectUri?: string;
 
   accessToken?: string;
-  accessTokenExpires?: Date;
+  accessTokenExpires?: number;
   refreshToken?: string;
-  refreshTokenExpires?: Date;
+  refreshTokenExpires?: number;
 
   retries?: number;
   timeout?: number;

@@ -15,7 +15,7 @@ export function hasAccessTokenExpired(td: TDAmeritrade) {
   return (
     td.auth.accessToken == null ||
     td.auth.accessTokenExpires == null ||
-    td.auth.accessTokenExpires.getTime() < new Date().getTime()
+    td.auth.accessTokenExpires < new Date().getTime()
   );
 }
 
@@ -23,7 +23,7 @@ export function hasRefreshTokenExpired(td: TDAmeritrade) {
   return (
     td.auth.refreshToken == null ||
     td.auth.refreshTokenExpires == null ||
-    td.auth.refreshTokenExpires.getTime() < new Date().getTime()
+    td.auth.refreshTokenExpires < new Date().getTime()
   );
 }
 
@@ -45,7 +45,7 @@ export async function refreshAccessToken(td: TDAmeritrade) {
 
   const today = new Date();
   td.auth.accessToken = response.data.access_token;
-  td.auth.accessTokenExpires = new Date(today.getTime() + ACCESS_TOKEN_EXPIRES);
+  td.auth.accessTokenExpires = today.getTime() + ACCESS_TOKEN_EXPIRES;
   td.onTokens?.(td.auth);
 }
 
@@ -71,11 +71,9 @@ export async function refreshRefreshToken(td: TDAmeritrade) {
 
   const today = new Date();
   td.auth.accessToken = response.data.access_token;
-  td.auth.accessTokenExpires = new Date(today.getTime() + ACCESS_TOKEN_EXPIRES);
+  td.auth.accessTokenExpires = today.getTime() + ACCESS_TOKEN_EXPIRES;
   td.auth.refreshToken = response.data.refresh_token;
-  td.auth.refreshTokenExpires = new Date(
-    today.getTime() + REFRESH_TOKEN_EXPIRES
-  );
+  td.auth.refreshTokenExpires = today.getTime() + REFRESH_TOKEN_EXPIRES;
   td.onTokens?.(td.auth);
 }
 
@@ -167,10 +165,8 @@ async function createAccessToken(code: string, td: TDAmeritrade) {
 
   const today = new Date();
   td.auth.accessToken = response.data.access_token;
-  td.auth.accessTokenExpires = new Date(today.getTime() + ACCESS_TOKEN_EXPIRES);
+  td.auth.accessTokenExpires = today.getTime() + ACCESS_TOKEN_EXPIRES;
   td.auth.refreshToken = response.data.refresh_token;
-  td.auth.refreshTokenExpires = new Date(
-    today.getTime() + REFRESH_TOKEN_EXPIRES
-  );
+  td.auth.refreshTokenExpires = today.getTime() + REFRESH_TOKEN_EXPIRES;
   td.onTokens?.(td.auth);
 }
