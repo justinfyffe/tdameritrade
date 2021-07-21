@@ -1,6 +1,20 @@
 import { apiGet } from './client';
 import { TDAmeritrade } from './tdameritrade';
 
+export enum PeriodType {
+  Day = 'day',
+  Month = 'month',
+  Year = 'year',
+  Ytd = 'ytd',
+}
+
+export enum FrequencyType {
+  Minute = 'minute',
+  Daily = 'daily',
+  Weekly = 'weekly',
+  Monthly = 'monthly',
+}
+
 export interface Candle {
   close: number;
   datetime: number;
@@ -17,9 +31,9 @@ export interface CandleList {
 }
 
 export interface GetPriceHistoryOptions {
-  periodType?: unknown;
+  periodType?: PeriodType;
   period?: number;
-  frequencyType?: unknown;
+  frequencyType?: FrequencyType;
   frequency?: number;
   endDate?: number;
   startDate?: number;
