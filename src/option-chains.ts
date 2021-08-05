@@ -131,7 +131,7 @@ export interface Option {
   rho: number;
   timeValue: number;
   openInterest: number;
-  isInTheMoney: boolean;
+  inTheMoney: boolean;
   theoreticalOptionValue: number;
   theoreticalVolatility: number;
   mini: boolean;
