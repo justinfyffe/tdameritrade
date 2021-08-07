@@ -1,9 +1,10 @@
-import axios, { AxiosRequestConfig, AxiosResponse } from 'axios';
+import axios, { AxiosRequestConfig } from 'axios';
 import * as querystring from 'querystring';
-import { TDAmeritrade, TDAmeritradeError } from './tdameritrade';
-
-export interface TDAmeritradeRequest extends AxiosRequestConfig {}
-export interface TDAmeritradeResponse extends AxiosResponse {}
+import {
+  TDAmeritrade,
+  TDAmeritradeContext,
+  TDAmeritradeError,
+} from './tdameritrade';
 
 export async function apiGet<T = unknown>(
   td: TDAmeritrade,
@@ -44,44 +45,40 @@ export async function makeRequest<T>(
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   data?: any
 ) {
-  const request = buildRequest(td, method, path, data);
-
-  let response: AxiosResponse<T> | null = null;
   let error: TDAmeritradeError | null = null;
+  const context: TDAmeritradeContext = { retries: 0 };
+
   let success = true;
-  let retryCounter = 0;
-
   do {
+    context.request = buildRequest(td, method, path, data);
+    context.timestamp = new Date();
+
     try {
-      const request = buildRequest(td, method, path, data);
-      await td.onRequest?.({ request });
-
-      response = await axios.request<T>(buildRequest(td, method, path, data));
-
-      // Break out of the loop
-      retryCounter = td.retries + 1;
+      await td.onRequest?.(context);
+      context.response = await axios.request<T>(context.request);
     } catch (e) {
-      retryCounter++;
+      context.retries!++;
+      context.error = e;
 
-      if (retryCounter <= td.retries) {
-        await td.onRetry?.({ request, error: e });
+      if (context.retries! <= td.retries) {
+        await td.onRetry?.(context);
       } else {
         success = false;
-        error = new TDAmeritradeError({ request, error: e });
-        await td.onFailed?.(error);
+        error = new TDAmeritradeError(context);
+        await td.onFailed?.(context);
       }
     }
-  } while (retryCounter <= td.retries);
+  } while (!success && context.retries! <= td.retries);
 
-  if (success && response != null) {
-    await td.onResponse?.({ request, response });
+  if (success && context.response != null) {
+    await td.onResponse?.(context);
   }
 
   if (!success && error != null) {
     throw error;
   }
 
-  return response!;
+  return context.response!;
 }
 
 function buildRequest(
