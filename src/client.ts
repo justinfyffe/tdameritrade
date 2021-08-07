@@ -2,7 +2,7 @@ import axios, { AxiosRequestConfig } from 'axios';
 import * as querystring from 'querystring';
 import {
   TDAmeritrade,
-  TDAmeritradeContext,
+  TDAmeritradeClientContext,
   TDAmeritradeError,
 } from './tdameritrade';
 
@@ -46,7 +46,7 @@ export async function makeRequest<T>(
   data?: any
 ) {
   let error: TDAmeritradeError | null = null;
-  const context: TDAmeritradeContext = { retries: 0 };
+  const context: TDAmeritradeClientContext<T> = { retries: 0 };
 
   let success = true;
   do {
@@ -64,7 +64,7 @@ export async function makeRequest<T>(
         await td.onRetry?.(context);
       } else {
         success = false;
-        error = new TDAmeritradeError(context);
+        error = new TDAmeritradeError({ client: context });
         await td.onFailed?.(context);
       }
     }

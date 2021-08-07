@@ -1,4 +1,5 @@
 import { AxiosError, AxiosRequestConfig, AxiosResponse } from 'axios';
+import { AccountSettings, UserPrincipal } from './user-info';
 
 export interface TDAmeritradeTokens {
   accessToken?: string;
@@ -7,21 +8,32 @@ export interface TDAmeritradeTokens {
   refreshTokenExpires?: number;
 }
 
-export interface TDAmeritradeContext {
+export interface TDAmeritradeClientContext<T = unknown> {
   request?: AxiosRequestConfig;
-  response?: AxiosResponse;
+  response?: AxiosResponse<T>;
   error?: AxiosError;
   retries?: number;
   timestamp?: Date;
   metadata?: unknown;
 }
 
-export class TDAmeritradeError extends Error {
-  context: TDAmeritradeContext;
+export interface TDAmeritradeStreamContext {
+  socket: WebSocket;
+  account: AccountSettings;
+  userPrincipals: UserPrincipal;
+}
 
-  constructor(context: TDAmeritradeContext) {
+export class TDAmeritradeError extends Error {
+  clientContext?: TDAmeritradeClientContext;
+  streamContext?: TDAmeritradeStreamContext;
+
+  constructor(context?: {
+    client?: TDAmeritradeClientContext;
+    stream?: TDAmeritradeStreamContext;
+  }) {
     super('An error has occurred while calling TD Ameritrade');
-    this.context = context;
+    this.clientContext = context?.client;
+    this.streamContext = context?.stream;
   }
 }
 
@@ -43,10 +55,10 @@ export interface TDAmeritradeConfig {
 
   onAuth?(oauthUrl: string): void | Promise<void>;
   onTokens?(tokens: TDAmeritradeTokens): void | Promise<void>;
-  onRequest?: (context: TDAmeritradeContext) => void | Promise<void>;
-  onResponse?: (context: TDAmeritradeContext) => void | Promise<void>;
-  onRetry?: (context: TDAmeritradeContext) => void | Promise<void>;
-  onFailed?: (context: TDAmeritradeContext) => void | Promise<void>;
+  onRequest?: (context: TDAmeritradeClientContext) => void | Promise<void>;
+  onResponse?: (context: TDAmeritradeClientContext) => void | Promise<void>;
+  onRetry?: (context: TDAmeritradeClientContext) => void | Promise<void>;
+  onFailed?: (context: TDAmeritradeClientContext) => void | Promise<void>;
 }
 
 export interface TDAmeritrade {
@@ -61,13 +73,22 @@ export interface TDAmeritrade {
   readonly timeout: number;
 
   auth: TDAmeritradeTokens;
+  stream?: TDAmeritradeStreamContext;
 
   readonly onAuth?: (oauthUrl: string) => void | Promise<void>;
   readonly onTokens?: (tokens: TDAmeritradeTokens) => void | Promise<void>;
-  readonly onRequest?: (context: TDAmeritradeContext) => void | Promise<void>;
-  readonly onResponse?: (context: TDAmeritradeContext) => void | Promise<void>;
-  readonly onRetry?: (context: TDAmeritradeContext) => void | Promise<void>;
-  readonly onFailed?: (context: TDAmeritradeContext) => void | Promise<void>;
+  readonly onRequest?: (
+    context: TDAmeritradeClientContext
+  ) => void | Promise<void>;
+  readonly onResponse?: (
+    context: TDAmeritradeClientContext
+  ) => void | Promise<void>;
+  readonly onRetry?: (
+    context: TDAmeritradeClientContext
+  ) => void | Promise<void>;
+  readonly onFailed?: (
+    context: TDAmeritradeClientContext
+  ) => void | Promise<void>;
 }
 
 export async function tdameritrade(config: TDAmeritradeConfig) {
