@@ -1,4 +1,5 @@
 import { v4 as uuidv4 } from 'uuid';
+import * as WebSocket from 'ws';
 import { TDAmeritrade, TDAmeritradeError } from '../tdameritrade';
 import {
   AccountSettings,
@@ -50,20 +51,42 @@ export interface StreamRequest {
   parameters?: unknown;
 }
 
-interface StreamResponse<T = unknown> {
+interface StreamHeartbeatResponse {
+  notify: {
+    heartbeat: string;
+  }[];
+}
+
+interface StreamResponse {
+  data?: (StreamDataResponse | StreamCodeResponse)[];
+  response?: (StreamDataResponse | StreamCodeResponse)[];
+}
+
+interface StreamDataResponse {
   service: StreamService;
   command: StreamCommand;
   requestid: string;
   timestamp: number;
-  content: T;
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  content: any;
 }
 
-interface StreamFullResponse {
-  response: StreamResponse[];
+interface StreamCodeResponse {
+  service: StreamService;
+  command: StreamCommand;
+  requestid: string;
+  timestamp: number;
+  content: {
+    code: number;
+    msg: string;
+  };
 }
 
 interface StreamOptions {
   accountId?: string;
+  onOpen?: () => void;
+  onClose?: () => void;
+  onError?: (error: Error) => void;
 }
 
 interface StreamRequestOptions {
@@ -71,12 +94,16 @@ interface StreamRequestOptions {
   command: StreamCommand;
   parameters?: unknown;
   adapter?: (response: unknown) => unknown | Promise<unknown>;
-  callback?: (result: unknown) => void | Promise<void>;
+  onSuccess?: (message: string) => void | Promise<void>;
+  onError?: (message: string) => void | Promise<void>;
+  onData?: (result: unknown) => void | Promise<void>;
 }
 
 interface StreamRequestContext {
   adapter?: (response: unknown) => unknown | Promise<unknown>;
-  callback?: (result: unknown) => void | Promise<void>;
+  onSuccess?: (message: string) => void | Promise<void>;
+  onError?: (message: string) => void | Promise<void>;
+  onData?: (result: unknown) => void | Promise<void>;
 }
 
 // Map holding all request ids -> request contexts
@@ -99,12 +126,24 @@ export async function createStream(td: TDAmeritrade, options?: StreamOptions) {
 
   td.stream = {
     socket: new WebSocket(
-      `wss://${userPrincipals.streamerInfo.streamerSocketUrl}/ws`
+      `ws://${userPrincipals.streamerInfo.streamerSocketUrl}/ws`
     ),
     account,
     userPrincipals: userPrincipals,
   };
-  td.stream.socket.onmessage = onMessage;
+
+  td.stream.socket.on('open', () => {
+    options?.onOpen?.();
+  });
+  td.stream.socket.on('close', () => {
+    options?.onClose?.();
+  });
+  td.stream.socket.on('error', (error) => {
+    options?.onError?.(error);
+  });
+  td.stream.socket.on('message', (data) => {
+    onMessage(data);
+  });
 }
 
 export function closeStream(td: TDAmeritrade) {
@@ -120,11 +159,11 @@ export function createStreamRequest(
   }
 
   const { account, userPrincipals } = td.stream;
-  const { service, command, parameters, callback } = options;
+  const { service, command, parameters, onSuccess, onError, onData } = options;
 
   const requestId = generateRequestId();
 
-  requests.set(requestId, { callback });
+  requests.set(requestId, { onSuccess, onError, onData });
 
   return {
     service,
@@ -147,18 +186,70 @@ export function sendStreamRequests(
   td.stream.socket.send(JSON.stringify({ requests }));
 }
 
-async function onMessage(evt: MessageEvent<StreamFullResponse>) {
-  for (const response of evt.data.response) {
-    const context = requests.get(response.requestid);
-    if (context == null) {
-      continue;
-    }
+async function onMessage(message: WebSocket.Data) {
+  const data: StreamHeartbeatResponse | StreamResponse = JSON.parse(
+    message.toString()
+  );
 
-    const result = context.adapter
-      ? await context.adapter(response.content)
-      : response.content;
-    context.callback?.(result);
+  if ('notify' in data) {
+    onHeartbeat(data);
+    return;
   }
+
+  console.log('data');
+  console.log(data);
+  console.log('data.data.content');
+  console.log(data.data?.[0]?.content);
+  console.log('data.response.content');
+  console.log(data.response?.[0]?.content);
+
+  if (data.response) {
+    for (const response of data.response!) {
+      if ('code' in response.content) {
+        onCode(response);
+      } else {
+        onData(response);
+      }
+    }
+  }
+
+  if (data.data) {
+    for (const response of data.data!) {
+      if ('code' in response.content) {
+        onCode(response);
+      } else {
+        onData(response);
+      }
+    }
+  }
+}
+
+function onHeartbeat(_response: StreamHeartbeatResponse) {
+  return;
+}
+
+async function onCode(response: StreamCodeResponse) {
+  const context = requests.get(response.requestid);
+  if (context == null) {
+    return;
+  }
+
+  if (response.content.code === 0) {
+    await context.onSuccess?.(response.content.msg);
+  } else {
+    await context.onError?.(response.content.msg);
+  }
+}
+
+async function onData(response: StreamDataResponse) {
+  const context = requests.get(response.requestid);
+  if (context == null) {
+    return;
+  }
+
+  const content = response.content;
+  const result = context.adapter ? await context.adapter(content) : content;
+  await context.onData?.(result);
 }
 
 function getAccount(accounts: AccountSettings[], accountId: string) {

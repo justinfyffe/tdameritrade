@@ -26,16 +26,19 @@ interface StreamCredentials {
 }
 
 interface LoginOptions {
-  callback?: () => void | Promise<void>;
+  onSuccess?: (message: string) => void | Promise<void>;
+  onError?: (message: string) => void | Promise<void>;
 }
 
 interface LogoutOptions {
-  callback?: () => void | Promise<void>;
+  onSuccess?: (message: string) => void | Promise<void>;
+  onError?: (message: string) => void | Promise<void>;
 }
 
 interface ChangeQualityOfLifeOptions {
   qos: QualityOfService;
-  callback?: () => void | Promise<void>;
+  onSuccess?: (message: string) => void | Promise<void>;
+  onError?: (message: string) => void | Promise<void>;
 }
 
 export function login(td: TDAmeritrade, options?: LoginOptions) {
@@ -67,7 +70,8 @@ export function login(td: TDAmeritrade, options?: LoginOptions) {
       token: userPrincipals.streamerInfo.token,
       version: '1.0',
     },
-    callback: options?.callback,
+    onSuccess: options?.onSuccess,
+    onError: options?.onError,
   });
 }
 
@@ -75,7 +79,8 @@ export function logout(td: TDAmeritrade, options?: LogoutOptions) {
   return createStreamRequest(td, {
     service: StreamService.Admin,
     command: StreamCommand.Logout,
-    callback: options?.callback,
+    onSuccess: options?.onSuccess,
+    onError: options?.onError,
   });
 }
 
@@ -87,6 +92,7 @@ export function changeQualityOfService(
     service: StreamService.Admin,
     command: StreamCommand.QualityOfService,
     parameters: { qoslevel: options.qos },
-    callback: options.callback,
+    onSuccess: options?.onSuccess,
+    onError: options?.onError,
   });
 }

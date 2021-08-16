@@ -1,9 +1,16 @@
 import { TDAmeritrade } from '../tdameritrade';
 import { createStreamRequest, StreamCommand, StreamService } from './client';
 
+export interface Actives {}
+
 enum ActivesField {
   Key = 0,
   Data = 1,
+}
+
+interface ActivesResponse {
+  key: string;
+  [ActivesField.Data]: string;
 }
 
 export enum ActivesVenue {
@@ -21,10 +28,12 @@ type Duration = 3600 | 1800 | 600 | 300 | 60;
 interface ActivesOptions {
   venue: ActivesVenue;
   duration?: Duration;
-  callback?: () => void | Promise<void>;
+  onSuccess?: (message: string) => void | Promise<void>;
+  onError?: (message: string) => void | Promise<void>;
+  onData?: () => void | Promise<void>;
 }
 
-export function subscribeActives(td: TDAmeritrade, options: ActivesOptions) {
+export function subscribeToActives(td: TDAmeritrade, options: ActivesOptions) {
   return createStreamRequest(td, {
     service: getService(options.venue),
     command: StreamCommand.Subscribe,
@@ -33,7 +42,9 @@ export function subscribeActives(td: TDAmeritrade, options: ActivesOptions) {
       fields: [ActivesField.Key, ActivesField.Data].join(','),
     },
     adapter: adaptActives,
-    callback: options.callback,
+    onSuccess: options?.onSuccess,
+    onError: options?.onError,
+    onData: options?.onData,
   });
 }
 
@@ -50,8 +61,28 @@ function getService(venue: ActivesVenue) {
   }
 }
 
-function adaptActives() {}
-
 function getKey(venue: ActivesVenue, duration?: Duration) {
   return `${venue}-${duration ?? 'ALL'}`;
+}
+
+function adaptActives(content: ActivesResponse) {
+  const data = content[ActivesField.Data];
+
+  const groups = data.split(';');
+  const id = Number(groups[0]);
+  const sampleDuration = Number(groups[1]);
+  const startTime = groups[2];
+  const displayTime = groups[3];
+  const totalGroups = Number(groups[4]);
+
+  for (let i = 0; i < totalGroups; ++i) {
+    const group = groups[5 + i];
+    const entries = group.split(':');
+
+    const groupNumber = Number(entries[0]);
+    const totalEntries = Number(entries[1]);
+    const totalVolume = Number(entries[2]);
+  }
+
+  return content;
 }

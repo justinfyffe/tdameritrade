@@ -1,4 +1,5 @@
 import { AxiosError, AxiosRequestConfig, AxiosResponse } from 'axios';
+import * as WebSocket from 'ws';
 import { AccountSettings, UserPrincipal } from './user-info';
 
 export interface TDAmeritradeTokens {

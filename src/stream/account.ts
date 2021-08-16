@@ -32,35 +32,39 @@ enum MessageError {
 }
 
 interface AccountActivityResponse {
+  key: string;
   [AccountActivityField.AccountId]: string;
   [AccountActivityField.MessageType]: MessageType;
   [AccountActivityField.MessageData]: string | MessageError | null;
 }
 
 interface ActivityOptions {
-  callback?: () => void | Promise<void>;
+  onSuccess?: (message: string) => void | Promise<void>;
+  onError?: (message: string) => void | Promise<void>;
+  onData?: () => void | Promise<void>;
 }
 
-export function subscribeAccountActivity(
+export function subscribeToAccountActivity(
   td: TDAmeritrade,
   options?: ActivityOptions
 ) {
   const key = td.stream?.userPrincipals.streamerSubscriptionKeys.keys[0].key;
+
+  const fields = Object.values(AccountActivityField).filter(
+    (value) => typeof value === 'number'
+  );
 
   return createStreamRequest(td, {
     service: StreamService.AccountActivity,
     command: StreamCommand.Subscribe,
     parameters: {
       keys: key,
-      fields: [
-        AccountActivityField.Key,
-        AccountActivityField.AccountId,
-        AccountActivityField.MessageType,
-        AccountActivityField.MessageData,
-      ].join(','),
+      fields: fields.join(','),
     },
     adapter: adaptAccountActivity,
-    callback: options?.callback,
+    onSuccess: options?.onSuccess,
+    onError: options?.onError,
+    onData: options?.onData,
   });
 }
 

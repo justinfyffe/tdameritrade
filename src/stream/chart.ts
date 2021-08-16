@@ -13,7 +13,7 @@ enum ChartEquityFields {
   ChartDay = 8,
 }
 
-enum ChartFuturesFields {
+enum ChartOptionFields {
   Key = 0,
   ChartTime = 1,
   OpenPrice = 2,
@@ -23,106 +23,92 @@ enum ChartFuturesFields {
   Volume = 6,
 }
 
-enum ChartOptionsFields {
-  Key = 0,
-  ChartTime = 1,
-  OpenPrice = 2,
-  HighPrice = 3,
-  LowPrice = 4,
-  ClosePrice = 5,
-  Volume = 6,
+interface ChartEquityResponse {
+  key: string;
+  seq: number;
+  [ChartEquityFields.OpenPrice]: number;
+  [ChartEquityFields.HighPrice]: number;
+  [ChartEquityFields.LowPrice]: number;
+  [ChartEquityFields.ClosePrice]: number;
+  [ChartEquityFields.Volume]: number;
+  [ChartEquityFields.Sequence]: number;
+  [ChartEquityFields.ChartTime]: number;
+  [ChartEquityFields.ChartDay]: number;
+}
+
+interface ChartOptionResponse {
+  key: string;
+  seq: number;
+  [ChartOptionFields.ChartTime]: number;
+  [ChartOptionFields.OpenPrice]: number;
+  [ChartOptionFields.HighPrice]: number;
+  [ChartOptionFields.LowPrice]: number;
+  [ChartOptionFields.ClosePrice]: number;
+  [ChartOptionFields.Volume]: number;
 }
 
 interface ChartEquityOptions {
   symbols: string[];
-  callback?: () => void | Promise<void>;
+  onSuccess?: (message: string) => void | Promise<void>;
+  onError?: (message: string) => void | Promise<void>;
+  onData?: () => void | Promise<void>;
 }
 
-interface ChartFuturesOptions {
+interface ChartOptionOptions {
   symbols: string[];
-  callback?: () => void | Promise<void>;
+  onSuccess?: (message: string) => void | Promise<void>;
+  onError?: (message: string) => void | Promise<void>;
+  onData?: () => void | Promise<void>;
 }
 
-interface ChartOptionsptions {
-  symbols: string[];
-  callback?: () => void | Promise<void>;
-}
-
-export function subscribeChartEquity(
+export function subscribeToChartEquities(
   td: TDAmeritrade,
   options: ChartEquityOptions
 ) {
+  const fields = Object.values(ChartEquityFields).filter(
+    (value) => typeof value === 'number'
+  );
+
   return createStreamRequest(td, {
     service: StreamService.ChartEquity,
     command: StreamCommand.Subscribe,
     parameters: {
       keys: options.symbols.map((symbol) => symbol.toUpperCase()).join(','),
-      fields: [
-        ChartEquityFields.Key,
-        ChartEquityFields.OpenPrice,
-        ChartEquityFields.HighPrice,
-        ChartEquityFields.LowPrice,
-        ChartEquityFields.ClosePrice,
-        ChartEquityFields.Volume,
-        ChartEquityFields.ChartTime,
-        ChartEquityFields.ChartDay,
-      ].join(','),
+      fields: fields.join(','),
     },
     adapter: adaptChartEquity,
-    callback: options.callback,
+    onSuccess: options?.onSuccess,
+    onError: options?.onError,
+    onData: options?.onData,
   });
 }
 
-export function subscribeChartFutures(
+export function subscribeToChartOptions(
   td: TDAmeritrade,
-  options: ChartFuturesOptions
+  options: ChartOptionOptions
 ) {
-  return createStreamRequest(td, {
-    service: StreamService.ChartFutures,
-    command: StreamCommand.Subscribe,
-    parameters: {
-      keys: options.symbols.map((symbol) => symbol.toUpperCase()).join(','),
-      fields: [
-        ChartFuturesFields.Key,
-        ChartFuturesFields.ChartTime,
-        ChartFuturesFields.OpenPrice,
-        ChartFuturesFields.HighPrice,
-        ChartFuturesFields.LowPrice,
-        ChartFuturesFields.ClosePrice,
-        ChartFuturesFields.Volume,
-      ].join(','),
-    },
-    adapter: adaptChartFutures,
-    callback: options.callback,
-  });
-}
+  const fields = Object.values(ChartOptionFields).filter(
+    (value) => typeof value === 'number'
+  );
 
-export function subscribeChartOptions(
-  td: TDAmeritrade,
-  options: ChartOptionsptions
-) {
   return createStreamRequest(td, {
     service: StreamService.ChartOptions,
     command: StreamCommand.Subscribe,
     parameters: {
       keys: options.symbols.map((symbol) => symbol.toUpperCase()).join(','),
-      fields: [
-        ChartOptionsFields.Key,
-        ChartOptionsFields.ChartTime,
-        ChartOptionsFields.OpenPrice,
-        ChartOptionsFields.HighPrice,
-        ChartOptionsFields.LowPrice,
-        ChartOptionsFields.ClosePrice,
-        ChartOptionsFields.Volume,
-      ].join(','),
+      fields: fields.join(','),
     },
-    adapter: adaptChartOptions,
-    callback: options.callback,
+    adapter: adaptChartOption,
+    onSuccess: options?.onSuccess,
+    onError: options?.onError,
+    onData: options?.onData,
   });
 }
 
-function adaptChartEquity() {}
+function adaptChartEquity(content: ChartEquityResponse) {
+  return content;
+}
 
-function adaptChartFutures() {}
-
-function adaptChartOptions() {}
+function adaptChartOption(content: ChartOptionResponse) {
+  return content;
+}
