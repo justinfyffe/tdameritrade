@@ -1,67 +1,55 @@
-import { apiDelete, apiGet, apiPost } from './client';
+import { Client } from './client';
 import { Order } from './orders';
-import { TDAmeritrade } from './tdameritrade';
 
 export interface SavedOrder extends Omit<Order, 'tag'> {
   savedOrderId: number;
   savedTime: string;
 }
 
-export async function createSavedOrder(
-  td: TDAmeritrade,
-  accountId: string,
-  order: Partial<SavedOrder>
-) {
-  const response = await apiPost<SavedOrder>(
-    td,
-    `accounts/${accountId}/savedorders`,
-    order
-  );
+export class SavedOrders {
+  constructor(private client: Client) {}
 
-  return response?.data;
-}
+  async create(accountId: string, order: Partial<SavedOrder>) {
+    const response = await this.client.post<SavedOrder>(
+      `accounts/${accountId}/savedorders`,
+      order
+    );
 
-export async function deleteSavedOrder(
-  td: TDAmeritrade,
-  accountId: string,
-  savedOrderId: number
-) {
-  await apiDelete(td, `accounts/${accountId}/savedorders/${savedOrderId}`);
-}
+    return response?.data;
+  }
 
-export async function getSavedOrder(
-  td: TDAmeritrade,
-  accountId: string,
-  savedOrderId: number
-) {
-  const response = await apiGet<SavedOrder>(
-    td,
-    `accounts/${accountId}/savedorders/${savedOrderId}`
-  );
+  async delete(accountId: string, savedOrderId: number) {
+    await this.client.delete(
+      `accounts/${accountId}/savedorders/${savedOrderId}`
+    );
+  }
 
-  return response?.data;
-}
+  async get(accountId: string, savedOrderId: number) {
+    const response = await this.client.get<SavedOrder>(
+      `accounts/${accountId}/savedorders/${savedOrderId}`
+    );
 
-export async function getSavedOrders(td: TDAmeritrade, accountId: string) {
-  const response = await apiGet<SavedOrder[]>(
-    td,
-    `accounts/${accountId}/savedorders`
-  );
+    return response?.data;
+  }
 
-  return response?.data;
-}
+  async getAll(accountId: string) {
+    const response = await this.client.get<SavedOrder[]>(
+      `accounts/${accountId}/savedorders`
+    );
 
-export async function replaceSavedOrder(
-  td: TDAmeritrade,
-  accountId: string,
-  savedOrderId: number,
-  order: Partial<SavedOrder>
-) {
-  const response = await apiPost<SavedOrder>(
-    td,
-    `accounts/${accountId}/savedorders/${savedOrderId}`,
-    order
-  );
+    return response?.data;
+  }
 
-  return response?.data;
+  async replace(
+    accountId: string,
+    savedOrderId: number,
+    order: Partial<SavedOrder>
+  ) {
+    const response = await this.client.post<SavedOrder>(
+      `accounts/${accountId}/savedorders/${savedOrderId}`,
+      order
+    );
+
+    return response?.data;
+  }
 }

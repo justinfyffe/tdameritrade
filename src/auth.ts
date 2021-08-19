@@ -1,172 +1,227 @@
 import axios from 'axios';
+import { EventEmitter2 } from 'eventemitter2';
 import * as fs from 'fs';
 import * as https from 'https';
 import * as querystring from 'querystring';
-import { TDAmeritrade } from './tdameritrade';
 
 const ACCESS_TOKEN_EXPIRES = 25 * 60 * 1000; // 25 minutes
 const REFRESH_TOKEN_EXPIRES = 75 * 24 * 60 * 60 * 1000; // 75 days
 
-export function hasAuthentication(td: TDAmeritrade) {
-  return td.auth.accessToken != null && td.auth.refreshToken != null;
+export enum AuthEvent {
+  Auth = 'auth',
+  Tokens = 'tokens',
 }
 
-export function hasAccessTokenExpired(td: TDAmeritrade) {
-  return (
-    td.auth.accessToken == null ||
-    td.auth.accessTokenExpires == null ||
-    td.auth.accessTokenExpires < new Date().getTime()
-  );
+export interface AuthTokens {
+  accessToken?: string;
+  accessTokenExpires?: number;
+  refreshToken?: string;
+  refreshTokenExpires?: number;
 }
 
-export function hasRefreshTokenExpired(td: TDAmeritrade) {
-  return (
-    td.auth.refreshToken == null ||
-    td.auth.refreshTokenExpires == null ||
-    td.auth.refreshTokenExpires < new Date().getTime()
-  );
+interface AuthConfig {
+  apiKey: string;
+  baseUrl: string;
+  redirectUri: string;
+  sslKey: string;
+  sslCert: string;
+  autoRefreshTokens: boolean;
+  tokens?: AuthTokens;
 }
 
-export async function refreshAccessToken(td: TDAmeritrade) {
-  const response = await axios.post<{ access_token: string }>(
-    '/oauth2/token',
-    querystring.stringify({
-      grant_type: 'refresh_token',
-      refresh_token: td.auth.refreshToken,
-      client_id: td.apiKey,
-    }),
-    {
-      baseURL: td.baseURL,
-      headers: {
-        'Content-Type': 'application/x-www-form-urlencoded',
-      },
+export class Auth {
+  private emitter = new EventEmitter2();
+
+  constructor(private config: AuthConfig, private tokens: AuthTokens) {}
+
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  on(event: AuthEvent, fn: (...args: any[]) => void | Promise<void>) {
+    this.emitter.on(event, fn);
+  }
+
+  setTokens(tokens: AuthTokens) {
+    this.tokens = tokens;
+  }
+
+  async getAccessToken() {
+    if (this.config.autoRefreshTokens) {
+      if (!this.isRefreshTokenValid()) {
+        await this.refreshRefreshToken();
+      } else if (!this.isAccessTokenValid()) {
+        await this.refreshAccessToken();
+      }
     }
-  );
 
-  const today = new Date();
-  td.auth.accessToken = response.data.access_token;
-  td.auth.accessTokenExpires = today.getTime() + ACCESS_TOKEN_EXPIRES;
-  td.onTokens?.(td.auth);
-}
+    return this.tokens.accessToken;
+  }
 
-export async function refreshRefreshToken(td: TDAmeritrade) {
-  const response = await axios.post<{
-    access_token: string;
-    refresh_token: string;
-  }>(
-    '/oauth2/token',
-    querystring.stringify({
-      grant_type: 'refresh_token',
-      access_type: 'offline',
-      refresh_token: td.auth.refreshToken,
-      client_id: td.apiKey,
-    }),
-    {
-      baseURL: td.baseURL,
-      headers: {
-        'Content-Type': 'application/x-www-form-urlencoded',
-      },
+  async refreshTokens() {
+    if (!this.isRefreshTokenValid()) {
+      await this.refreshRefreshToken();
+    } else if (!this.isAccessTokenValid()) {
+      await this.refreshAccessToken();
     }
-  );
 
-  const today = new Date();
-  td.auth.accessToken = response.data.access_token;
-  td.auth.accessTokenExpires = today.getTime() + ACCESS_TOKEN_EXPIRES;
-  td.auth.refreshToken = response.data.refresh_token;
-  td.auth.refreshTokenExpires = today.getTime() + REFRESH_TOKEN_EXPIRES;
-  td.onTokens?.(td.auth);
-}
-
-export async function authenticate(td: TDAmeritrade) {
-  if (!td.sslKey) {
-    throw new Error('Missing `sslKey` property');
+    return this.tokens;
   }
 
-  if (!fs.existsSync(td.sslKey)) {
-    throw new Error(`Cannot read SSL key path: ${td.sslKey}`);
-  }
+  async authenticate() {
+    if (this.isAccessTokenValid() || this.isRefreshTokenValid()) {
+      // Already authenticated, we don't need to bother.
+      return;
+    }
 
-  if (!td.sslCert) {
-    throw new Error('Missing `sslCert` config property');
-  }
+    if (!fs.existsSync(this.config.sslKey)) {
+      throw new Error(`Cannot read SSL key path: ${this.config.sslKey}`);
+    }
 
-  if (!fs.existsSync(td.sslCert)) {
-    throw new Error(`Cannot read SSL cert path: ${td.sslKey}`);
-  }
+    if (!fs.existsSync(this.config.sslCert)) {
+      throw new Error(`Cannot read SSL cert path: ${this.config.sslCert}`);
+    }
 
-  return new Promise<void>((resolve, reject) => {
-    const serverOptions = {
-      key: fs.readFileSync(td.sslKey!),
-      cert: fs.readFileSync(td.sslCert!),
-    };
+    return new Promise<AuthTokens>((resolve, reject) => {
+      const serverOptions = {
+        key: fs.readFileSync(this.config.sslKey!),
+        cert: fs.readFileSync(this.config.sslCert!),
+      };
 
-    const server = https.createServer(serverOptions, async (req, res) => {
-      if (req.url == null) {
-        res.writeHead(422);
-        res.write('Missing path');
-        return res.end();
-      }
+      const server = https.createServer(serverOptions, async (req, res) => {
+        if (req.url == null) {
+          res.writeHead(422);
+          res.write('Missing path');
+          return res.end();
+        }
 
-      const requestUrl = new URL(req.url, 'http://127.0.0.1:8443');
-      if (!requestUrl.searchParams.has('code')) {
-        res.writeHead(422);
-        res.write('Authorization code is required');
-        return res.end();
-      }
+        const requestUrl = new URL(req.url, 'http://127.0.0.1:8443');
+        if (!requestUrl.searchParams.has('code')) {
+          res.writeHead(422);
+          res.write('Authorization code is required');
+          return res.end();
+        }
 
-      try {
-        await createAccessToken(requestUrl.searchParams.get('code')!, td);
+        try {
+          await this.createAccessToken(requestUrl.searchParams.get('code')!);
 
-        res.writeHead(204);
-        res.end();
-        resolve();
-      } catch (error) {
-        res.writeHead(500);
-        res.end();
-        reject(error);
-      } finally {
-        server.close();
-      }
-    });
-
-    const { port, hostname } = new URL(td.redirectUri!);
-    server.listen(Number(port), hostname, () => {
-      const query = querystring.stringify({
-        response_type: 'code',
-        redirect_uri: td.redirectUri,
-        client_id: `${td.apiKey}@AMER.OAUTHAP`,
+          res.writeHead(204);
+          res.end();
+          resolve(this.tokens);
+        } catch (error) {
+          res.writeHead(500);
+          res.end();
+          reject(error);
+        } finally {
+          server.close();
+        }
       });
 
-      td.onAuth?.(`https://auth.tdameritrade.com/auth?${query}`);
+      const { port, hostname } = new URL(this.config.redirectUri!);
+      server.listen(Number(port), hostname, async () => {
+        const query = querystring.stringify({
+          response_type: 'code',
+          redirect_uri: this.config.redirectUri,
+          client_id: `${this.config.apiKey}@AMER.OAUTHAP`,
+        });
+
+        await this.emitter.emitAsync(
+          AuthEvent.Auth,
+          `https://auth.tdameritrade.com/auth?${query}`
+        );
+      });
     });
-  });
-}
+  }
 
-async function createAccessToken(code: string, td: TDAmeritrade) {
-  const response = await axios.post<{
-    access_token: string;
-    refresh_token: string;
-  }>(
-    '/oauth2/token',
-    querystring.stringify({
-      grant_type: 'authorization_code',
-      access_type: 'offline',
-      code,
-      client_id: td.apiKey,
-      redirect_uri: td.redirectUri,
-    }),
-    {
-      baseURL: td.baseURL,
-      headers: {
-        'Content-Type': 'application/x-www-form-urlencoded',
-      },
-    }
-  );
+  private async createAccessToken(code: string) {
+    const response = await axios.post<{
+      access_token: string;
+      refresh_token: string;
+    }>(
+      '/oauth2/token',
+      querystring.stringify({
+        grant_type: 'authorization_code',
+        access_type: 'offline',
+        code,
+        client_id: this.config.apiKey,
+        redirect_uri: this.config.redirectUri,
+      }),
+      {
+        baseURL: this.config.baseUrl,
+        headers: {
+          'Content-Type': 'application/x-www-form-urlencoded',
+        },
+      }
+    );
 
-  const today = new Date();
-  td.auth.accessToken = response.data.access_token;
-  td.auth.accessTokenExpires = today.getTime() + ACCESS_TOKEN_EXPIRES;
-  td.auth.refreshToken = response.data.refresh_token;
-  td.auth.refreshTokenExpires = today.getTime() + REFRESH_TOKEN_EXPIRES;
-  td.onTokens?.(td.auth);
+    const today = new Date();
+    this.tokens.accessToken = response.data.access_token;
+    this.tokens.accessTokenExpires = today.getTime() + ACCESS_TOKEN_EXPIRES;
+    this.tokens.refreshToken = response.data.refresh_token;
+    this.tokens.refreshTokenExpires = today.getTime() + REFRESH_TOKEN_EXPIRES;
+    await this.emitter.emitAsync(AuthEvent.Tokens, { ...this.tokens });
+  }
+
+  private async refreshAccessToken() {
+    const response = await axios.post<{ access_token: string }>(
+      '/oauth2/token',
+      querystring.stringify({
+        grant_type: 'refresh_token',
+        refresh_token: this.tokens.refreshToken,
+        client_id: this.config.apiKey,
+      }),
+      {
+        baseURL: this.config.baseUrl,
+        headers: {
+          'Content-Type': 'application/x-www-form-urlencoded',
+        },
+      }
+    );
+
+    const today = new Date();
+    this.tokens.accessToken = response.data.access_token;
+    this.tokens.accessTokenExpires = today.getTime() + ACCESS_TOKEN_EXPIRES;
+    await this.emitter.emitAsync(AuthEvent.Tokens, { ...this.tokens });
+  }
+
+  private async refreshRefreshToken() {
+    const response = await axios.post<{
+      access_token: string;
+      refresh_token: string;
+    }>(
+      '/oauth2/token',
+      querystring.stringify({
+        grant_type: 'refresh_token',
+        access_type: 'offline',
+        refresh_token: this.tokens.refreshToken,
+        client_id: this.config.apiKey,
+      }),
+      {
+        baseURL: this.config.baseUrl,
+        headers: {
+          'Content-Type': 'application/x-www-form-urlencoded',
+        },
+      }
+    );
+
+    const today = new Date();
+    this.tokens.accessToken = response.data.access_token;
+    this.tokens.accessTokenExpires = today.getTime() + ACCESS_TOKEN_EXPIRES;
+    this.tokens.refreshToken = response.data.refresh_token;
+    this.tokens.refreshTokenExpires = today.getTime() + REFRESH_TOKEN_EXPIRES;
+    await this.emitter.emitAsync(AuthEvent.Tokens, { ...this.tokens });
+  }
+
+  private isAccessTokenValid() {
+    return (
+      this.tokens.accessToken != null &&
+      this.tokens.accessTokenExpires != null &&
+      this.tokens.accessTokenExpires > new Date().getTime()
+    );
+  }
+
+  private isRefreshTokenValid() {
+    return (
+      this.tokens.refreshToken != null &&
+      this.tokens.refreshTokenExpires != null &&
+      this.tokens.refreshTokenExpires > new Date().getTime()
+    );
+  }
 }

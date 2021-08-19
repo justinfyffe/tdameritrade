@@ -1,5 +1,4 @@
-import { apiGet } from './client';
-import { TDAmeritrade } from './tdameritrade';
+import { Client } from './client';
 
 export enum EquityOrderLegInstruction {
   Buy = 'BUY',
@@ -176,41 +175,34 @@ export interface AccountAuthorizations {
   scottradeAccount: boolean;
 }
 
-export async function getPreferences(td: TDAmeritrade, accountId: string) {
-  const response = await apiGet<Preferences>(
-    td,
-    `accounts/${accountId}/preferences`
-  );
+export class UserInfo {
+  constructor(private client: Client) {}
 
-  return response?.data;
-}
+  async getPreferences(accountId: string) {
+    const response = await this.client.get<Preferences>(
+      `accounts/${accountId}/preferences`
+    );
 
-export async function updatePreferences(
-  accountId: string,
-  preferences: Preferences
-) {
-  await this.client.put(`accounts/${accountId}/preferences`, preferences);
-}
+    return response?.data;
+  }
 
-export async function getStreamerSubscriptionKeys(
-  td: TDAmeritrade,
-  accountIds: number[]
-) {
-  const response = await apiGet<SubscriptionKeys>(
-    td,
-    'userprincipals/streamersubscriptionkeys',
-    { accountIds: accountIds.join(',') }
-  );
+  async updatePreferences(accountId: string, preferences: Preferences) {
+    await this.client.put(`accounts/${accountId}/preferences`, preferences);
+  }
 
-  return response?.data;
-}
+  async getStreamerSubscriptionKeys(accountIds: number[]) {
+    const response = await this.client.get<SubscriptionKeys>(
+      'userprincipals/streamersubscriptionkeys',
+      { accountIds: accountIds.join(',') }
+    );
 
-export async function getUserPrincipals(
-  td: TDAmeritrade,
-  fields: UserPrincipalField[] = []
-) {
-  const response = await apiGet<UserPrincipal>(td, 'userprincipals', {
-    fields: fields.join(','),
-  });
-  return response?.data;
+    return response?.data;
+  }
+
+  async getUserPrincipals(fields: UserPrincipalField[] = []) {
+    const response = await this.client.get<UserPrincipal>('userprincipals', {
+      fields: fields.join(','),
+    });
+    return response?.data;
+  }
 }

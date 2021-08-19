@@ -1,7 +1,6 @@
 import { format } from 'date-fns';
-import { apiDelete, apiGet, apiPost, apiPut } from './client';
+import { Client } from './client';
 import { Instrument } from './positions';
-import { TDAmeritrade } from './tdameritrade';
 
 export enum ComplexOrderStrategyType {
   None = 'NONE',
@@ -173,7 +172,7 @@ export interface OrderLeg {
   quantity: number;
 }
 
-export interface GetOrdersOptions {
+export interface ListOrdersOptions {
   accountId?: string;
   maxResults?: number;
   fromEnteredTime?: Date;
@@ -181,71 +180,55 @@ export interface GetOrdersOptions {
   status?: OrderStatus;
 }
 
-export async function cancelOrder(
-  td: TDAmeritrade,
-  accountId: string,
-  orderId: number
-) {
-  await apiDelete(td, `accounts/${accountId}/orders/${orderId}`);
-}
+export class Orders {
+  constructor(private client: Client) {}
 
-export async function getOrder(
-  td: TDAmeritrade,
-  accountId: string,
-  orderId: number
-) {
-  const response = await apiGet<Order>(
-    td,
-    `accounts/${accountId}/orders/${orderId}`,
-    null
-  );
-  return response?.data;
-}
+  async cancel(accountId: string, orderId: number) {
+    await this.client.delete(`accounts/${accountId}/orders/${orderId}`);
+  }
 
-export async function getOrders(td: TDAmeritrade, options: GetOrdersOptions) {
-  const path = options.accountId
-    ? `accounts/${options.accountId}/orders`
-    : 'orders';
+  async get(accountId: string, orderId: number) {
+    const response = await this.client.get<Order>(
+      `accounts/${accountId}/orders/${orderId}`,
+      null
+    );
+    return response?.data;
+  }
 
-  const response = await apiGet<Order[]>(td, path, {
-    maxResults: options.maxResults || '',
-    fromEnteredTime: options.fromEnteredTime
-      ? format(options.fromEnteredTime, 'yyyy-MM-dd')
-      : undefined,
-    toEnteredTime: options.toEnteredTime
-      ? format(options.toEnteredTime, 'yyyy-MM-dd')
-      : undefined,
-    status: options.status || '',
-  });
+  async getMultiple(options: ListOrdersOptions) {
+    const path = options.accountId
+      ? `accounts/${options.accountId}/orders`
+      : 'orders';
 
-  return response?.data;
-}
+    const response = await this.client.get<Order[]>(path, {
+      maxResults: options.maxResults || '',
+      fromEnteredTime: options.fromEnteredTime
+        ? format(options.fromEnteredTime, 'yyyy-MM-dd')
+        : undefined,
+      toEnteredTime: options.toEnteredTime
+        ? format(options.toEnteredTime, 'yyyy-MM-dd')
+        : undefined,
+      status: options.status || '',
+    });
 
-export async function placeOrder(
-  td: TDAmeritrade,
-  accountId: string,
-  order: Partial<Order>
-) {
-  const response = await apiPost<Order>(
-    td,
-    `accounts/${accountId}/orders`,
-    order
-  );
+    return response?.data;
+  }
 
-  return response?.data;
-}
+  async place(accountId: string, order: Partial<Order>) {
+    const response = await this.client.post<Order>(
+      `accounts/${accountId}/orders`,
+      order
+    );
 
-export async function replaceOrder(
-  td: TDAmeritrade,
-  accountId: string,
-  orderId: number,
-  order: Partial<Order>
-) {
-  const response = await apiPut<Order>(
-    td,
-    `accounts/${accountId}/orders/${orderId}`,
-    order
-  );
+    return response?.data;
+  }
 
-  return response?.data;
+  async replace(accountId: string, orderId: number, order: Partial<Order>) {
+    const response = await this.client.put<Order>(
+      `accounts/${accountId}/orders/${orderId}`,
+      order
+    );
+
+    return response?.data;
+  }
 }

@@ -1,5 +1,4 @@
-import { apiGet } from './client';
-import { TDAmeritrade } from './tdameritrade';
+import { Client } from './client';
 
 export enum MarketType {
   Bond = 'BOND',
@@ -43,19 +42,19 @@ export interface MarketHoursResponse {
   };
 }
 
-export async function getMarketHours(
-  td: TDAmeritrade,
-  markets: MarketType | MarketType[],
-  date: Date
-) {
-  const path = Array.isArray(markets)
-    ? 'marketdata/hours'
-    : `marketdata/${markets}/hours`;
+export class MarketHours {
+  constructor(private client: Client) {}
 
-  const query = Array.isArray(markets)
-    ? { date: date.toISOString(), markets }
-    : { date: date.toISOString() };
+  async get(markets: MarketType | MarketType[], date: Date) {
+    const path = Array.isArray(markets)
+      ? 'marketdata/hours'
+      : `marketdata/${markets}/hours`;
 
-  const response = await apiGet<MarketHoursResponse>(td, path, query);
-  return response?.data;
+    const query = Array.isArray(markets)
+      ? { date: date.toISOString(), markets }
+      : { date: date.toISOString() };
+
+    const response = await this.client.get<MarketHoursResponse>(path, query);
+    return response?.data;
+  }
 }

@@ -1,102 +1,142 @@
-import axios, { AxiosRequestConfig } from 'axios';
+import axios, { AxiosError, AxiosRequestConfig, AxiosResponse } from 'axios';
+import { EventEmitter2 } from 'eventemitter2';
 import * as querystring from 'querystring';
-import {
-  TDAmeritrade,
-  TDAmeritradeClientContext,
-  TDAmeritradeError,
-} from './tdameritrade';
+import { v4 as uuidv4 } from 'uuid';
+import { Auth } from './auth';
 
-export async function apiGet<T = unknown>(
-  td: TDAmeritrade,
-  path: string,
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  data?: any
-) {
-  const query = data != null ? `?${querystring.stringify(data)}` : '';
-  return await makeRequest<T>(td, 'get', `/${path}${query}`, null);
+export enum ClientEvent {
+  Request = 'request',
+  Response = 'response',
+  Retry = 'retry',
+  Failed = 'failed',
 }
 
-export async function apiPost<T = unknown>(
-  td: TDAmeritrade,
-  path: string,
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  data?: any
-) {
-  return await makeRequest<T>(td, 'post', path, data);
+export interface ClientContext<T = unknown> {
+  requestId: string;
+  retries: number;
+
+  request?: AxiosRequestConfig;
+  response?: AxiosResponse<T>;
+  error?: AxiosError;
+  timestamp?: Date;
+  metadata?: unknown;
 }
 
-export async function apiPut<T = unknown>(
-  td: TDAmeritrade,
-  path: string,
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  data?: any
-) {
-  return await makeRequest<T>(td, 'put', path, data);
+export interface ClientConfig {
+  baseUrl: string;
+  auth: Auth;
+  timeout?: number;
+  retries?: number;
 }
 
-export async function apiDelete(td: TDAmeritrade, path: string) {
-  return await makeRequest(td, 'delete', path);
-}
+export class Client {
+  private baseUrl: string;
+  private timeout: number;
+  private retries: number;
+  private auth: Auth;
 
-export async function makeRequest<T>(
-  td: TDAmeritrade,
-  method: 'get' | 'post' | 'put' | 'delete',
-  path: string,
+  private emitter = new EventEmitter2();
+
+  constructor(options: ClientConfig) {
+    this.baseUrl = options.baseUrl;
+    this.auth = options.auth;
+    this.retries = options.retries ?? 3;
+    this.timeout = options.timeout ?? 10_000;
+  }
+
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  data?: any
-) {
-  let error: TDAmeritradeError | null = null;
-  const context: TDAmeritradeClientContext<T> = { retries: 0 };
+  on(event: ClientEvent, fn: (...args: any[]) => void | Promise<void>) {
+    this.emitter.on(event, fn);
+  }
 
-  let success = true;
-  do {
-    context.request = buildRequest(td, method, path, data);
-    context.timestamp = new Date();
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  async get<T = unknown>(path: string, data?: any) {
+    const query = data != null ? `?${querystring.stringify(data)}` : '';
+    return await this.request<T>('get', `/${path}${query}`, null);
+  }
 
-    try {
-      await td.onRequest?.(context);
-      context.response = await axios.request<T>(context.request);
-    } catch (e) {
-      context.retries!++;
-      context.error = e;
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  async post<T = unknown>(path: string, data?: any) {
+    return await this.request<T>('post', path, data);
+  }
 
-      if (context.retries! <= td.retries) {
-        await td.onRetry?.(context);
-      } else {
-        success = false;
-        error = new TDAmeritradeError({ client: context });
-        await td.onFailed?.(context);
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  async put<T = unknown>(path: string, data?: any) {
+    return await this.request<T>('put', path, data);
+  }
+
+  async delete(path: string) {
+    return await this.request('delete', path);
+  }
+
+  private async request<T = unknown>(
+    method: 'get' | 'post' | 'put' | 'delete',
+    path: string,
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    data?: any
+  ) {
+    let error: ClientError | null = null;
+    const context: ClientContext<T> = { requestId: uuidv4(), retries: 0 };
+
+    let success = true;
+    do {
+      context.request = await this.buildRequest(method, path, data);
+      context.timestamp = new Date();
+
+      try {
+        await this.emitter.emitAsync(ClientEvent.Request, context);
+        context.response = await axios.request<T>(context.request);
+      } catch (e) {
+        context.retries!++;
+        context.error = e;
+
+        if (context.retries! <= this.retries) {
+          await this.emitter.emitAsync(ClientEvent.Retry, context);
+        } else {
+          success = false;
+          error = new ClientError<T>(context);
+          await this.emitter.emitAsync(ClientEvent.Failed, context);
+        }
       }
+    } while (!success && context.retries! <= this.retries);
+
+    if (success && context.response != null) {
+      await this.emitter.emitAsync(ClientEvent.Response, context);
     }
-  } while (!success && context.retries! <= td.retries);
 
-  if (success && context.response != null) {
-    await td.onResponse?.(context);
+    if (!success && error != null) {
+      throw error;
+    }
+
+    return context.response!;
   }
 
-  if (!success && error != null) {
-    throw error;
+  private async buildRequest(
+    method: 'get' | 'post' | 'put' | 'delete',
+    path: string,
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    data?: any
+  ) {
+    const accessToken = await this.auth.getAccessToken();
+    return {
+      method,
+      baseURL: this.baseUrl,
+      url: path,
+      data: querystring.stringify(data),
+      headers: {
+        Authorization: `Bearer ${accessToken}`,
+        Accept: 'application/json',
+      },
+      timeout: this.timeout,
+    } as AxiosRequestConfig;
   }
-
-  return context.response!;
 }
 
-function buildRequest(
-  td: TDAmeritrade,
-  method: 'get' | 'post' | 'put' | 'delete',
-  path: string,
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  data?: any
-) {
-  return {
-    method,
-    baseURL: td.baseURL,
-    url: path,
-    data: querystring.stringify(data),
-    headers: {
-      Authorization: `Bearer ${td.auth.accessToken}`,
-      Accept: 'application/json',
-    },
-    timeout: td.timeout,
-  } as AxiosRequestConfig;
+export class ClientError<T = unknown> extends Error {
+  context?: ClientContext;
+
+  constructor(context?: ClientContext<T>) {
+    super('An error has occurred while calling TD Ameritrade via HTTP client');
+    this.context = context;
+  }
 }

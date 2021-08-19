@@ -44,15 +44,3 @@ export interface OptionInstrument {
 }
 
 export type Instrument = EquityInstrument | OptionInstrument;
-
-export function isEquityPosition(
-  position: Position
-): position is EquityPosition {
-  return position.instrument.assetType === AssetType.Equity;
-}
-
-export function isOptionPosition(
-  position: Position
-): position is OptionPosition {
-  return position.instrument.assetType === AssetType.Option;
-}

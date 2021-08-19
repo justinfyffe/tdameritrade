@@ -1,5 +1,4 @@
-import { apiGet } from './client';
-import { TDAmeritrade } from './tdameritrade';
+import { Client } from './client';
 
 export enum OptionContractType {
   All = 'ALL',
@@ -175,36 +174,39 @@ export interface GetOptionChainOptions {
   optionType?: OptionContractType;
 }
 
-export async function getOptionChain(
-  td: TDAmeritrade,
-  symbol: string,
-  options?: GetOptionChainOptions
-) {
-  const query = {
-    ...options,
-    fromDate: options?.fromDate?.toISOString() ?? undefined,
-    toDate: options?.toDate?.toISOString() ?? undefined,
-    symbol,
-  };
+export class OptionChains {
+  constructor(private client: Client) {}
 
-  const response = await apiGet<OptionChain>(td, 'marketdata/chains', query);
-  return response?.data;
-}
+  async get(symbol: string, options?: GetOptionChainOptions) {
+    const query = {
+      ...options,
+      fromDate: options?.fromDate?.toISOString() ?? undefined,
+      toDate: options?.toDate?.toISOString() ?? undefined,
+      symbol,
+    };
 
-export function getCallOptions(optionChain: OptionChain) {
-  return flattenOptionMap(optionChain.callExpDateMap);
-}
+    const response = await this.client.get<OptionChain>(
+      'marketdata/chains',
+      query
+    );
+    return response?.data;
+  }
 
-export function getPutOptions(optionChain: OptionChain) {
-  return flattenOptionMap(optionChain.putExpDateMap);
-}
+  getCalls(optionChain: OptionChain) {
+    return this.flattenOptionMap(optionChain.callExpDateMap);
+  }
 
-function flattenOptionMap(map: ExpirationStrikeMap) {
-  return Object.values(map).reduce((options, strikeMap) => {
-    Object.values(strikeMap).forEach((strikeOptions) => {
-      options.push(...strikeOptions);
-    });
+  getPuts(optionChain: OptionChain) {
+    return this.flattenOptionMap(optionChain.putExpDateMap);
+  }
 
-    return options;
-  }, [] as Option[]);
+  private flattenOptionMap(map: ExpirationStrikeMap) {
+    return Object.values(map).reduce((options, strikeMap) => {
+      Object.values(strikeMap).forEach((strikeOptions) => {
+        options.push(...strikeOptions);
+      });
+
+      return options;
+    }, [] as Option[]);
+  }
 }

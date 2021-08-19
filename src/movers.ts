@@ -1,5 +1,4 @@
-import { apiGet } from './client';
-import { TDAmeritrade } from './tdameritrade';
+import { Client } from './client';
 
 export enum MoverChange {
   Percent = 'percent',
@@ -25,15 +24,14 @@ export interface MovementOptions {
   change?: MoverChange;
 }
 
-export async function getMovers(
-  td: TDAmeritrade,
-  index: string,
-  movement?: MovementOptions
-) {
-  const response = await apiGet<Mover[]>(
-    td,
-    `marketdata/${index}/movers`,
-    movement
-  );
-  return response?.data;
+export class Movers {
+  constructor(private client: Client) {}
+
+  async get(index: string, movement?: MovementOptions) {
+    const response = await this.client.get<Mover[]>(
+      `marketdata/${index}/movers`,
+      movement
+    );
+    return response?.data;
+  }
 }

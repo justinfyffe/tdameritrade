@@ -6,10 +6,14 @@ import {
   MarginAccountProjectedBalances,
   ProjectedBalances,
 } from './balances';
-import { apiGet } from './client';
+import { Client } from './client';
 import { Order } from './orders';
-import { Position } from './positions';
-import { TDAmeritrade } from './tdameritrade';
+import {
+  AssetType,
+  EquityPosition,
+  OptionPosition,
+  Position,
+} from './positions';
 
 export enum AccountType {
   Cash = 'CASH',
@@ -49,43 +53,47 @@ interface GetAccountResponse {
   securitiesAccount: Account;
 }
 
-export async function getAccounts(
-  td: TDAmeritrade,
-  fieldOptions?: FieldOptions
-) {
-  const fields: string[] = [];
-  fieldOptions?.positions && fields.push('positions');
-  fieldOptions?.orders && fields.push('orders');
+export class Accounts {
+  constructor(private client: Client) {}
 
-  const response = await apiGet<GetAccountResponse[]>(td, 'accounts', {
-    fields: fields.join(','),
-  });
+  async getAll(fieldOptions?: FieldOptions) {
+    const fields: string[] = [];
+    fieldOptions?.positions && fields.push('positions');
+    fieldOptions?.orders && fields.push('orders');
 
-  return response?.data?.map((data) => data.securitiesAccount);
-}
+    const response = await this.client.get<GetAccountResponse[]>('accounts', {
+      fields: fields.join(','),
+    });
 
-export async function getAccount(
-  td: TDAmeritrade,
-  accountId: string,
-  fieldOptions?: FieldOptions
-) {
-  const fields: string[] = [];
-  fieldOptions?.positions && fields.push('positions');
-  fieldOptions?.orders && fields.push('orders');
+    return response?.data?.map((data) => data.securitiesAccount);
+  }
 
-  const response = await apiGet<GetAccountResponse>(
-    td,
-    `accounts/${accountId}`,
-    { fields: fields.join(',') }
-  );
+  async get(accountId: string, fieldOptions?: FieldOptions) {
+    const fields: string[] = [];
+    fieldOptions?.positions && fields.push('positions');
+    fieldOptions?.orders && fields.push('orders');
 
-  return response?.data?.securitiesAccount;
-}
+    const response = await this.client.get<GetAccountResponse>(
+      `accounts/${accountId}`,
+      { fields: fields.join(',') }
+    );
 
-export function isCashAccount(account: Account): account is CashAccount {
-  return account.type === AccountType.Cash;
-}
+    return response?.data?.securitiesAccount;
+  }
 
-export function isMarginAccount(account: Account): account is MarginAccount {
-  return account.type === AccountType.Margin;
+  isCashAccount(account: Account): account is CashAccount {
+    return account.type === AccountType.Cash;
+  }
+
+  isMarginAccount(account: Account): account is MarginAccount {
+    return account.type === AccountType.Margin;
+  }
+
+  isEquityPosition(position: Position): position is EquityPosition {
+    return position.instrument.assetType === AssetType.Equity;
+  }
+
+  isOptionPosition(position: Position): position is OptionPosition {
+    return position.instrument.assetType === AssetType.Option;
+  }
 }

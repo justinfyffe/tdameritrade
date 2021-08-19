@@ -1,5 +1,4 @@
-import { apiGet } from './client';
-import { TDAmeritrade } from './tdameritrade';
+import { Client } from './client';
 
 export enum AssetType {
   Equity = 'EQUITY',
@@ -81,25 +80,28 @@ export interface SearchInstrumentsResponse {
   [symbol: string]: Instrument;
 }
 
-export async function searchInstruments(
-  td: TDAmeritrade,
-  symbol: string,
-  projection: SearchInstrumentProjection
-) {
-  const response = await apiGet<SearchInstrumentsResponse>(td, 'instruments', {
-    symbol,
-    projection,
-  });
-  return response?.data;
-}
+export class Instruments {
+  constructor(private client: Client) {}
 
-export async function getInstrument(td: TDAmeritrade, cusip: string) {
-  const response = await apiGet<Instrument>(td, `instruments/${cusip}`);
-  return response?.data;
-}
+  async search(symbol: string, projection: SearchInstrumentProjection) {
+    const response = await this.client.get<SearchInstrumentsResponse>(
+      'instruments',
+      {
+        symbol,
+        projection,
+      }
+    );
+    return response?.data;
+  }
 
-export function isFundamentalInstrument(
-  instrument: Instrument
-): instrument is FundamentalInstrument {
-  return 'fundamental' in instrument;
+  async get(cusip: string) {
+    const response = await this.client.get<Instrument>(`instruments/${cusip}`);
+    return response?.data;
+  }
+
+  isFundamentalInstrument(
+    instrument: Instrument
+  ): instrument is FundamentalInstrument {
+    return 'fundamental' in instrument;
+  }
 }

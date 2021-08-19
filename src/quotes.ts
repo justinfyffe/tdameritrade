@@ -1,5 +1,4 @@
-import { apiGet } from './client';
-import { TDAmeritrade } from './tdameritrade';
+import { Client } from './client';
 
 export enum AssetType {
   Equity = 'EQUITY',
@@ -122,24 +121,32 @@ export interface GetQuotesResponse {
   [symbol: string]: Quote;
 }
 
-export async function getQuote(td: TDAmeritrade, symbol: string) {
-  const response = await apiGet<Quote>(td, `marketdata/${symbol}/quotes`);
+export class Quotes {
+  constructor(private client: Client) {}
 
-  return response?.data;
-}
+  async get(symbol: string) {
+    const response = await this.client.get<Quote>(
+      `marketdata/${symbol}/quotes`
+    );
+    return response?.data;
+  }
 
-export async function getQuotes(td: TDAmeritrade, symbols: string[]) {
-  const response = await apiGet<GetQuotesResponse>(td, 'marketdata/quotes', {
-    symbol: symbols.join(','),
-  });
+  async getMultiple(symbols: string[]) {
+    const response = await this.client.get<GetQuotesResponse>(
+      'marketdata/quotes',
+      {
+        symbol: symbols.join(','),
+      }
+    );
 
-  return response?.data;
-}
+    return response?.data;
+  }
 
-export function isOptionQuote(quote: Quote): quote is OptionQuote {
-  return quote.assetMainType === 'OPTION';
-}
+  isOptionQuote(quote: Quote): quote is OptionQuote {
+    return quote.assetMainType === 'OPTION';
+  }
 
-export function isEquityQuote(quote: Quote): quote is EquityQuote {
-  return quote.assetMainType === 'EQUITY';
+  isEquityQuote(quote: Quote): quote is EquityQuote {
+    return quote.assetMainType === 'EQUITY';
+  }
 }

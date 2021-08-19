@@ -1,5 +1,4 @@
-import { apiGet } from './client';
-import { TDAmeritrade } from './tdameritrade';
+import { Client } from './client';
 
 export enum PeriodType {
   Day = 'day',
@@ -40,16 +39,15 @@ export interface GetPriceHistoryOptions {
   needExtendedHoursData?: boolean;
 }
 
-export async function getPriceHistory(
-  td: TDAmeritrade,
-  symbol: string,
-  options?: GetPriceHistoryOptions
-) {
-  const response = await apiGet<CandleList>(
-    td,
-    `marketdata/${symbol}/pricehistory`,
-    options
-  );
+export class PriceHistory {
+  constructor(private client: Client) {}
 
-  return response?.data;
+  async get(symbol: string, options?: GetPriceHistoryOptions) {
+    const response = await this.client.get<CandleList>(
+      `marketdata/${symbol}/pricehistory`,
+      options
+    );
+
+    return response?.data;
+  }
 }

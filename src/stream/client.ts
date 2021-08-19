@@ -1,11 +1,12 @@
+import { EventEmitter2 } from 'eventemitter2';
 import { v4 as uuidv4 } from 'uuid';
 import * as WebSocket from 'ws';
-import { TDAmeritrade, TDAmeritradeError } from '../tdameritrade';
-import {
-  AccountSettings,
-  getUserPrincipals,
-  UserPrincipalField,
-} from '../user-info';
+
+export enum ClientEvent {
+  Open = 'open',
+  Close = 'close',
+  Error = 'error',
+}
 
 export enum StreamService {
   AccountActivity = 'ACCT_ACTIVITY',
@@ -43,37 +44,36 @@ export enum StreamCommand {
 }
 
 export interface StreamRequest {
-  service: StreamService;
-  command: StreamCommand;
+  service: string;
+  command: string;
   requestid: string;
   account: string;
   source: string;
   parameters?: unknown;
 }
 
-interface StreamHeartbeatResponse {
-  notify: {
-    heartbeat: string;
-  }[];
+interface HeartbeatResponse {
+  heartbeat: string;
 }
 
-interface StreamResponse {
-  data?: (StreamDataResponse | StreamCodeResponse)[];
-  response?: (StreamDataResponse | StreamCodeResponse)[];
+interface Response {
+  notify?: HeartbeatResponse[];
+  data?: (DataResponse | CodeResponse)[];
+  response?: (DataResponse | CodeResponse)[];
 }
 
-interface StreamDataResponse {
-  service: StreamService;
-  command: StreamCommand;
+interface DataResponse {
+  service: string;
+  command: string;
   requestid: string;
   timestamp: number;
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   content: any;
 }
 
-interface StreamCodeResponse {
-  service: StreamService;
-  command: StreamCommand;
+interface CodeResponse {
+  service: string;
+  command: string;
   requestid: string;
   timestamp: number;
   content: {
@@ -82,186 +82,153 @@ interface StreamCodeResponse {
   };
 }
 
-interface StreamOptions {
-  accountId?: string;
-  onOpen?: () => void;
-  onClose?: () => void;
-  onError?: (error: Error) => void;
+interface RequestContext {
+  adapter?: (response: unknown) => unknown | Promise<unknown>;
+  onSuccess?: (message: string) => void | Promise<void>;
+  onError?: (message: string) => void | Promise<void>;
+  onData?: (result: unknown) => void | Promise<void>;
 }
 
-interface StreamRequestOptions {
-  service: StreamService;
-  command: StreamCommand;
+interface SendOptions {
+  service: string;
+  command: string;
   parameters?: unknown;
-  adapter?: (response: unknown) => unknown | Promise<unknown>;
-  onSuccess?: (message: string) => void | Promise<void>;
-  onError?: (message: string) => void | Promise<void>;
-  onData?: (result: unknown) => void | Promise<void>;
 }
 
-interface StreamRequestContext {
-  adapter?: (response: unknown) => unknown | Promise<unknown>;
-  onSuccess?: (message: string) => void | Promise<void>;
-  onError?: (message: string) => void | Promise<void>;
-  onData?: (result: unknown) => void | Promise<void>;
-}
+export class Client {
+  private socket: WebSocket;
+  private appId: string;
+  private accountId: string;
 
-// Map holding all request ids -> request contexts
-const requests = new Map<string, StreamRequestContext>();
+  private emitter = new EventEmitter2();
 
-export async function createStream(td: TDAmeritrade, options?: StreamOptions) {
-  const userPrincipals = await getUserPrincipals(td, [
-    UserPrincipalField.StreamerConnectionInfo,
-    UserPrincipalField.StreamerSubscriptionKeys,
-  ]);
+  // Map holding all request ids -> request contexts
+  private requests = new Map<string, RequestContext>();
 
-  const account = getAccount(
-    userPrincipals.accounts,
-    options?.accountId ?? userPrincipals.primaryAccountId
-  );
+  constructor() {}
 
-  if (account == null) {
-    throw new TDAmeritradeError();
+  isOpen() {
+    return this.socket.readyState === this.socket.OPEN;
   }
 
-  td.stream = {
-    socket: new WebSocket(
-      `ws://${userPrincipals.streamerInfo.streamerSocketUrl}/ws`
-    ),
-    account,
-    userPrincipals: userPrincipals,
-  };
+  async open(streamUrl: string, appId: string, accountId: string) {
+    if (this.socket != null && this.isOpen()) {
+      return;
+    }
 
-  td.stream.socket.on('open', () => {
-    options?.onOpen?.();
-  });
-  td.stream.socket.on('close', () => {
-    options?.onClose?.();
-  });
-  td.stream.socket.on('error', (error) => {
-    options?.onError?.(error);
-  });
-  td.stream.socket.on('message', (data) => {
-    onMessage(data);
-  });
-}
+    this.appId = appId;
+    this.accountId = accountId;
+    this.socket = new WebSocket(`ws://${streamUrl}/ws`);
 
-export function closeStream(td: TDAmeritrade) {
-  td.stream?.socket?.close();
-}
+    this.socket.on('close', async () => {
+      await this.emitter.emitAsync(ClientEvent.Close);
+    });
 
-export function createStreamRequest(
-  td: TDAmeritrade,
-  options: StreamRequestOptions
-): StreamRequest {
-  if (td.stream == null) {
-    throw new TDAmeritradeError();
+    this.socket.on('error', async (error) => {
+      await this.emitter.emitAsync(ClientEvent.Error, error);
+    });
+
+    this.socket.on('message', async (message: WebSocket.Data) => {
+      await this.processMessage(message);
+    });
+
+    return new Promise<void>((resolve) => {
+      this.socket!.on('open', async () => {
+        await this.emitter.emitAsync(ClientEvent.Open);
+        resolve();
+      });
+    });
   }
 
-  const { account, userPrincipals } = td.stream;
-  const { service, command, parameters, onSuccess, onError, onData } = options;
-
-  const requestId = generateRequestId();
-
-  requests.set(requestId, { onSuccess, onError, onData });
-
-  return {
-    service,
-    command,
-    requestid: requestId,
-    account: account.accountId,
-    source: userPrincipals.streamerInfo.appId,
-    parameters: parameters ?? {},
-  };
-}
-
-export function sendStreamRequests(
-  td: TDAmeritrade,
-  requests: StreamRequest[]
-) {
-  if (td.stream == null) {
-    throw new TDAmeritradeError();
+  close() {
+    if (this.isOpen()) {
+      this.socket.close();
+    }
   }
 
-  td.stream.socket.send(JSON.stringify({ requests }));
-}
+  send(
+    options: SendOptions,
+    onData?: (result: unknown) => void | Promise<void>
+  ): void | Promise<void> {
+    const requestId = this.generateRequestId();
+    const request: StreamRequest = {
+      service: options.service,
+      command: options.command,
+      parameters: options.parameters ?? {},
+      requestid: requestId,
+      account: this.accountId,
+      source: this.appId,
+    };
 
-async function onMessage(message: WebSocket.Data) {
-  const data: StreamHeartbeatResponse | StreamResponse = JSON.parse(
-    message.toString()
-  );
-
-  if ('notify' in data) {
-    onHeartbeat(data);
-    return;
+    return new Promise<void>((resolve, reject) => {
+      this.requests.set(requestId, {
+        onSuccess: () => this.handleSuccess(requestId, resolve),
+        onError: () => this.handleError(requestId, reject),
+        onData,
+      });
+    }).then(() => {
+      this.socket.send(JSON.stringify({ requests: [request] }));
+    });
   }
 
-  console.log('data');
-  console.log(data);
-  console.log('data.data.content');
-  console.log(data.data?.[0]?.content);
-  console.log('data.response.content');
-  console.log(data.response?.[0]?.content);
+  private generateRequestId() {
+    return uuidv4();
+  }
 
-  if (data.response) {
-    for (const response of data.response!) {
+  private async handleSuccess(requestId: string, resolve: () => void) {
+    this.requests.delete(requestId);
+    resolve();
+  }
+
+  private async handleError(requestId: string, reject: () => void) {
+    this.requests.delete(requestId);
+    reject();
+  }
+
+  private async processMessage(message: WebSocket.Data) {
+    const data: Response = JSON.parse(message.toString());
+
+    if ('notify' in data) {
+      // Just a heartbeat, return
+      return;
+    }
+
+    console.log('data');
+    console.log(data);
+    console.log('data.data.content');
+    console.log(data.data?.[0]?.content);
+    console.log('data.response.content');
+    console.log(data.response?.[0]?.content);
+
+    const responses = data.response || data.data;
+    for (const response of responses!) {
       if ('code' in response.content) {
-        onCode(response);
+        await this.processCodeResponse(response);
       } else {
-        onData(response);
+        await this.processDataResponse(response);
       }
     }
   }
 
-  if (data.data) {
-    for (const response of data.data!) {
-      if ('code' in response.content) {
-        onCode(response);
-      } else {
-        onData(response);
-      }
+  private async processCodeResponse(response: CodeResponse) {
+    const context = this.requests.get(response.requestid);
+    if (context == null) {
+      return;
     }
-  }
-}
 
-function onHeartbeat(_response: StreamHeartbeatResponse) {
-  return;
-}
-
-async function onCode(response: StreamCodeResponse) {
-  const context = requests.get(response.requestid);
-  if (context == null) {
-    return;
-  }
-
-  if (response.content.code === 0) {
-    await context.onSuccess?.(response.content.msg);
-  } else {
-    await context.onError?.(response.content.msg);
-  }
-}
-
-async function onData(response: StreamDataResponse) {
-  const context = requests.get(response.requestid);
-  if (context == null) {
-    return;
-  }
-
-  const content = response.content;
-  const result = context.adapter ? await context.adapter(content) : content;
-  await context.onData?.(result);
-}
-
-function getAccount(accounts: AccountSettings[], accountId: string) {
-  for (const account of accounts) {
-    if (account.accountId === accountId) {
-      return account;
+    if (response.content.code === 0) {
+      await context.onSuccess?.(response.content.msg);
+    } else {
+      await context.onError?.(response.content.msg);
     }
   }
 
-  return null;
-}
+  private async processDataResponse(response: DataResponse) {
+    const context = this.requests.get(response.requestid);
+    if (context == null) {
+      return;
+    }
 
-function generateRequestId() {
-  return uuidv4();
+    await context.onData?.(response.content);
+  }
 }

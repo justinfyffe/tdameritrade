@@ -1,6 +1,5 @@
 import { format } from 'date-fns';
-import { apiGet } from './client';
-import { TDAmeritrade } from './tdameritrade';
+import { Client } from './client';
 
 export enum AssetType {
   CashEquivalent = 'CASH_EQUIVALENT',
@@ -193,44 +192,38 @@ export interface TransactionFees {
   secFee: number;
 }
 
-export interface GetTransactionsOptions {
+export interface ListTransactionsOptions {
   type?: TransactionType;
   symbol?: string;
   startDate?: Date;
   endDate?: Date;
 }
 
-export async function getTransaction(
-  td: TDAmeritrade,
-  accountId: string,
-  transactionId: number
-) {
-  const response = await apiGet<Transaction>(
-    td,
-    `accounts/${accountId}/transactions/${transactionId}`
-  );
+export class Transactions {
+  constructor(private client: Client) {}
 
-  return response?.data;
-}
+  async get(accountId: string, transactionId: number) {
+    const response = await this.client.get<Transaction>(
+      `accounts/${accountId}/transactions/${transactionId}`
+    );
 
-export async function getTransactions(
-  td: TDAmeritrade,
-  accountId: string,
-  options?: GetTransactionsOptions
-) {
-  const response = await apiGet<Transaction[]>(
-    td,
-    `accounts/${accountId}/transactions`,
-    {
-      ...options,
-      startDate: options?.startDate
-        ? format(options.startDate, 'yyyy-MM-dd')
-        : undefined,
-      endDate: options?.endDate
-        ? format(options.endDate, 'yyyy-MM-dd')
-        : undefined,
-    }
-  );
+    return response?.data;
+  }
 
-  return response?.data;
+  async list(accountId: string, options?: ListTransactionsOptions) {
+    const response = await this.client.get<Transaction[]>(
+      `accounts/${accountId}/transactions`,
+      {
+        ...options,
+        startDate: options?.startDate
+          ? format(options.startDate, 'yyyy-MM-dd')
+          : undefined,
+        endDate: options?.endDate
+          ? format(options.endDate, 'yyyy-MM-dd')
+          : undefined,
+      }
+    );
+
+    return response?.data;
+  }
 }
