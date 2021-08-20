@@ -1,5 +1,4 @@
 import { EventEmitter2 } from 'eventemitter2';
-import { TDAmeritradeError } from '../tdameritrade';
 import {
   AccountSettings,
   UserInfo,
@@ -7,7 +6,12 @@ import {
   UserPrincipalField,
 } from '../user-info';
 import { Accounts } from './accounts';
+import { Actives } from './actives';
+import { Charts } from './charts';
 import { Client } from './client';
+import { News } from './news';
+import { Quotes } from './quotes';
+import { TimeSales } from './timesales';
 
 export enum QualityOfService {
   Express = 0, // 500ms
@@ -18,10 +22,16 @@ export enum QualityOfService {
   Delayed = 5, // 5000ms
 }
 
-enum StreamEvent {
+export enum StreamEvent {
   Open = 'open',
   Close = 'close',
   Error = 'error',
+}
+
+export interface StreamContext {
+  socket?: WebSocket;
+  account?: AccountSettings;
+  userPrincipals?: UserPrincipal;
 }
 
 interface StreamCredentials {
@@ -40,13 +50,15 @@ interface StreamCredentials {
 
 interface StreamOptions {
   accountId?: string;
-  onOpen?: () => void;
-  onClose?: () => void;
-  onError?: (error: Error) => void;
 }
 
 export class Stream {
   readonly accounts: Accounts;
+  readonly actives: Actives;
+  readonly charts: Charts;
+  readonly news: News;
+  readonly quotes: Quotes;
+  readonly timeSales: TimeSales;
 
   private client: Client;
   private userPrincipals: UserPrincipal;
@@ -58,6 +70,11 @@ export class Stream {
     this.client = new Client();
 
     this.accounts = new Accounts(this.client);
+    this.actives = new Actives(this.client);
+    this.charts = new Charts(this.client);
+    this.news = new News(this.client);
+    this.quotes = new Quotes(this.client);
+    this.timeSales = new TimeSales(this.client);
   }
 
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
@@ -81,7 +98,9 @@ export class Stream {
     );
 
     if (this.accountSettings == null) {
-      throw new TDAmeritradeError();
+      throw new StreamError({
+        userPrincipals: this.userPrincipals,
+      });
     }
 
     this.accounts.setSubscriptionKey(
@@ -151,4 +170,13 @@ function jsonToQueryString<T = unknown>(json: T) {
   return Object.keys(json)
     .map((key) => encodeURIComponent(key) + '=' + encodeURIComponent(json[key]))
     .join('&');
+}
+
+export class StreamError extends Error {
+  context?: StreamContext;
+
+  constructor(context?: StreamContext) {
+    super('An error has occurred while calling TD Ameritrade via stream');
+    this.context = context;
+  }
 }

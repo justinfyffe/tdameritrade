@@ -1,7 +1,8 @@
+import { EventEmitter2 } from 'eventemitter2';
 import * as xml2js from 'xml2js';
 import { Client } from './client';
 
-interface AccountActivity {
+export interface AccountActivity {
   accountId: string;
   type: MessageType;
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
@@ -13,6 +14,10 @@ enum AccountActivityField {
   AccountId = 1,
   MessageType = 2,
   MessageData = 3,
+}
+
+export enum AccountsEvent {
+  AccountActivity = 'account-activity',
 }
 
 enum MessageType {
@@ -47,15 +52,20 @@ interface AccountActivityResponse {
 export class Accounts {
   private subscriptionKey: string;
 
+  private emitter = new EventEmitter2();
+
   constructor(private client: Client) {}
+
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  on(event: AccountsEvent, fn: (...args: any[]) => void | Promise<void>) {
+    this.emitter.on(event, fn);
+  }
 
   setSubscriptionKey(subscriptionKey: string) {
     this.subscriptionKey = subscriptionKey;
   }
 
-  subscribeToAccountActivity(
-    onData: (activity: AccountActivity) => void | Promise<void>
-  ) {
+  subscribeToAccountActivity() {
     const fields = Object.values(AccountActivityField).filter(
       (value) => typeof value === 'number'
     );
@@ -71,12 +81,12 @@ export class Accounts {
       },
       async (response: AccountActivityResponse) => {
         const result = await this.adaptAccountActivity(response);
-        onData(result);
+        await this.emitter.emitAsync(AccountsEvent.AccountActivity, result);
       }
     );
   }
 
-  async adaptAccountActivity(
+  private async adaptAccountActivity(
     content: AccountActivityResponse
   ): Promise<AccountActivity> {
     const accountId = content[AccountActivityField.AccountId];

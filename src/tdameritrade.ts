@@ -1,5 +1,3 @@
-import { AxiosError, AxiosRequestConfig, AxiosResponse } from 'axios';
-import * as WebSocket from 'ws';
 import { Accounts } from './accounts';
 import { Auth } from './auth';
 import { Client } from './client';
@@ -12,57 +10,17 @@ import { PriceHistory } from './price-history';
 import { Quotes } from './quotes';
 import { SavedOrders } from './saved-orders';
 import { Transactions } from './transactions';
-import { AccountSettings, UserInfo, UserPrincipal } from './user-info';
+import { UserInfo } from './user-info';
 import { Watchlists } from './watchlists';
 
-export interface TDAmeritradeTokens {
+export interface TdAmeritradeTokens {
   accessToken?: string;
   accessTokenExpires?: number;
   refreshToken?: string;
   refreshTokenExpires?: number;
 }
 
-export interface TDAmeritradeClientContext<T = unknown> {
-  request?: AxiosRequestConfig;
-  response?: AxiosResponse<T>;
-  error?: AxiosError;
-  retries?: number;
-  timestamp?: Date;
-  metadata?: unknown;
-}
-
-export interface TDAmeritradeRequestContext<T = unknown> {
-  requestId: string;
-  retries: number;
-
-  request?: AxiosRequestConfig;
-  response?: AxiosResponse<T>;
-  error?: AxiosError;
-  timestamp?: Date;
-  metadata?: unknown;
-}
-
-export interface TDAmeritradeStreamContext {
-  socket: WebSocket;
-  account: AccountSettings;
-  userPrincipals: UserPrincipal;
-}
-
-export class TDAmeritradeError extends Error {
-  requestContext?: TDAmeritradeRequestContext;
-  streamContext?: TDAmeritradeStreamContext;
-
-  constructor(context?: {
-    request?: TDAmeritradeRequestContext;
-    stream?: TDAmeritradeStreamContext;
-  }) {
-    super('An error has occurred while calling TD Ameritrade');
-    this.requestContext = context?.request;
-    this.streamContext = context?.stream;
-  }
-}
-
-export interface TDAmeritradeConfig {
+export interface TdAmeritradeConfig {
   apiKey: string;
   apiUrl?: string;
 
@@ -78,80 +36,17 @@ export interface TDAmeritradeConfig {
 
   retries?: number;
   timeout?: number;
-
-  onAuth?(oauthUrl: string): void | Promise<void>;
-  onTokens?(tokens: TDAmeritradeTokens): void | Promise<void>;
-  onRequest?: (context: TDAmeritradeClientContext) => void | Promise<void>;
-  onResponse?: (context: TDAmeritradeClientContext) => void | Promise<void>;
-  onRetry?: (context: TDAmeritradeClientContext) => void | Promise<void>;
-  onFailed?: (context: TDAmeritradeClientContext) => void | Promise<void>;
 }
 
-export interface TDAmeritrade2 {
-  readonly apiKey: string;
-  readonly baseURL: string;
-
-  readonly redirectUri?: string;
-  readonly sslKey?: string;
-  readonly sslCert?: string;
-
-  readonly retries: number;
-  readonly timeout: number;
-
-  auth: TDAmeritradeTokens;
-  stream?: TDAmeritradeStreamContext;
-
-  readonly onAuth?: (oauthUrl: string) => void | Promise<void>;
-  readonly onTokens?: (tokens: TDAmeritradeTokens) => void | Promise<void>;
-  readonly onRequest?: (
-    context: TDAmeritradeClientContext
-  ) => void | Promise<void>;
-  readonly onResponse?: (
-    context: TDAmeritradeClientContext
-  ) => void | Promise<void>;
-  readonly onRetry?: (
-    context: TDAmeritradeClientContext
-  ) => void | Promise<void>;
-  readonly onFailed?: (
-    context: TDAmeritradeClientContext
-  ) => void | Promise<void>;
-}
-
-export async function tdameritrade(config: TDAmeritradeConfig) {
+export async function tdameritrade(config: TdAmeritradeConfig) {
   if (!config.apiKey) {
     throw new Error('Missing `apiKey` property');
   }
 
-  const td: TDAmeritrade = {
-    apiKey: config.apiKey,
-    baseURL: config.apiUrl ?? 'https://api.tdameritrade.com/v1',
-
-    redirectUri: config.redirectUri,
-    sslKey: config.sslKey,
-    sslCert: config.sslCert,
-
-    retries: config.retries ?? 0,
-    timeout: config.timeout ?? 10_000,
-
-    auth: {
-      accessToken: config.accessToken,
-      accessTokenExpires: config.accessTokenExpires,
-      refreshToken: config.refreshToken,
-      refreshTokenExpires: config.refreshTokenExpires,
-    },
-
-    onAuth: config.onAuth,
-    onTokens: config.onTokens,
-    onRequest: config.onRequest,
-    onResponse: config.onResponse,
-    onRetry: config.onRetry,
-    onFailed: config.onFailed,
-  };
-
-  return td;
+  return new TdAmeritrade(config);
 }
 
-export class TDAmeritrade {
+export class TdAmeritrade {
   readonly client: Client;
   readonly auth: Auth;
   readonly accounts: Accounts;
@@ -167,7 +62,7 @@ export class TDAmeritrade {
   readonly userInfo: UserInfo;
   readonly watchlists: Watchlists;
 
-  constructor(config: TDAmeritradeConfig) {
+  constructor(config: TdAmeritradeConfig) {
     this.auth = new Auth(
       {
         apiKey: config.apiKey,

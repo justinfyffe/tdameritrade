@@ -15,6 +15,7 @@
   "dependencies": {
     "axios": "^0.21.1",
     "date-fns": "^2.21.1",
+    "eventemitter2": "^6.4.4",
     "querystring": "^0.2.1",
     "uuid": "^8.3.2",
     "ws": "^8.1.0",

@@ -8,41 +8,6 @@ export enum ClientEvent {
   Error = 'error',
 }
 
-export enum StreamService {
-  AccountActivity = 'ACCT_ACTIVITY',
-  ActivesNasdaq = 'ACTIVES_NASDAQ',
-  ActivesNyse = 'ACTIVES_NYSE',
-  ActivesOptions = 'ACTIVES_OPTIONS',
-  ActivesOtcbb = 'ACTIVES_OTCBB',
-  Admin = 'ADMIN',
-  ChartEquity = 'CHART_EQUITY',
-  ChartFutures = 'CHART_FUTURES',
-  ChartHistoryFutures = 'CHART_HISTORY_FUTURES',
-  ChartOptions = 'CHART_OPTIONS',
-  LevelOneForex = 'LEVELONE_FOREX',
-  LevelOneFutures = 'LEVELONE_FUTURES',
-  LevelOneFuturesOptions = 'LEVELONE_FUTURES_OPTIONS',
-  NewsHeadline = 'NEWS_HEADLINE',
-  Option = 'OPTION',
-  Quote = 'QUOTE',
-  TimesaleEquity = 'TIMESALE_EQUITY',
-  TimesaleForex = 'TIMESALE_FOREX',
-  TimesaleFutures = 'TIMESALE_FUTURES',
-  TimesaleOptions = 'TIMESALE_OPTIONS',
-}
-
-export enum StreamCommand {
-  Add = 'ADD',
-  Get = 'GET',
-  Login = 'LOGIN',
-  Logout = 'LOGOUT',
-  QualityOfService = 'QOS',
-  Stream = 'STREAM',
-  Subscribe = 'SUBS',
-  Unsubscribe = 'UNSUBS',
-  View = 'VIEW',
-}
-
 export interface StreamRequest {
   service: string;
   command: string;
@@ -83,7 +48,6 @@ interface CodeResponse {
 }
 
 interface RequestContext {
-  adapter?: (response: unknown) => unknown | Promise<unknown>;
   onSuccess?: (message: string) => void | Promise<void>;
   onError?: (message: string) => void | Promise<void>;
   onData?: (result: unknown) => void | Promise<void>;

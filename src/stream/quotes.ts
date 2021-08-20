@@ -1,5 +1,5 @@
-import { TDAmeritrade } from '../tdameritrade';
-import { createStreamRequest, StreamCommand, StreamService } from './client';
+import { EventEmitter2 } from 'eventemitter2';
+import { Client } from './client';
 
 enum EquityQuoteFields {
   Symbol = 0,
@@ -102,72 +102,80 @@ enum OptionQuoteFields {
   Mark = 41,
 }
 
+export enum QuotesEvent {
+  EquityQuote = 'equity-quote',
+  OptionQuote = 'option-quote',
+}
+
 interface EquityQuoteResponse {}
 
 interface OptionQuoteResponse {}
 
 interface EquityQuoteOptions {
   symbols: string[];
-  onSuccess?: (message: string) => void | Promise<void>;
-  onError?: (message: string) => void | Promise<void>;
-  onData?: () => void | Promise<void>;
 }
 
 interface OptionQuoteOptions {
   symbols: string[];
-  onSuccess?: (message: string) => void | Promise<void>;
-  onError?: (message: string) => void | Promise<void>;
-  onData?: () => void | Promise<void>;
 }
 
-export function subscribeToEquityQuotes(
-  td: TDAmeritrade,
-  options: EquityQuoteOptions
-) {
-  const fields = Object.values(EquityQuoteFields).filter(
-    (value) => typeof value === 'number'
-  );
+export class Quotes {
+  private emitter = new EventEmitter2();
 
-  return createStreamRequest(td, {
-    service: StreamService.Quote,
-    command: StreamCommand.Subscribe,
-    parameters: {
-      keys: options.symbols.map((symbol) => symbol.toUpperCase()).join(','),
-      fields: fields.join(','),
-    },
-    adapter: adaptEquityQuote,
-    onSuccess: options?.onSuccess,
-    onError: options?.onError,
-    onData: options?.onData,
-  });
-}
+  constructor(private client: Client) {}
 
-export function subscribeToOptionQuotes(
-  td: TDAmeritrade,
-  options: OptionQuoteOptions
-) {
-  const fields = Object.values(OptionQuoteFields).filter(
-    (value) => typeof value === 'number'
-  );
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  on(event: QuotesEvent, fn: (...args: any[]) => void | Promise<void>) {
+    this.emitter.on(event, fn);
+  }
 
-  return createStreamRequest(td, {
-    service: StreamService.Option,
-    command: StreamCommand.Subscribe,
-    parameters: {
-      keys: options.symbols.map((symbol) => symbol.toUpperCase()).join(','),
-      fields: fields.join(','),
-    },
-    adapter: adaptOptionQuote,
-    onSuccess: options?.onSuccess,
-    onError: options?.onError,
-    onData: options?.onData,
-  });
-}
+  subscribeToEquityQuotes(options: EquityQuoteOptions) {
+    const fields = Object.values(EquityQuoteFields).filter(
+      (value) => typeof value === 'number'
+    );
 
-function adaptEquityQuote(content: EquityQuoteResponse) {
-  return content;
-}
+    this.client.send(
+      {
+        service: 'QUOTE',
+        command: 'SUBS',
+        parameters: {
+          keys: options.symbols.map((symbol) => symbol.toUpperCase()).join(','),
+          fields: fields.join(','),
+        },
+      },
+      async (response: EquityQuoteResponse) => {
+        const result = await this.adaptEquityQuote(response);
+        await this.emitter.emitAsync(QuotesEvent.EquityQuote, result);
+      }
+    );
+  }
 
-function adaptOptionQuote(content: OptionQuoteResponse) {
-  return content;
+  subscribeToOptionQuotes(options: OptionQuoteOptions) {
+    const fields = Object.values(OptionQuoteFields).filter(
+      (value) => typeof value === 'number'
+    );
+
+    this.client.send(
+      {
+        service: 'OPTION',
+        command: 'SUBS',
+        parameters: {
+          keys: options.symbols.map((symbol) => symbol.toUpperCase()).join(','),
+          fields: fields.join(','),
+        },
+      },
+      async (response: OptionQuoteResponse) => {
+        const result = await this.adaptOptionQuote(response);
+        await this.emitter.emitAsync(QuotesEvent.OptionQuote, result);
+      }
+    );
+  }
+
+  private async adaptEquityQuote(content: EquityQuoteResponse) {
+    return content;
+  }
+
+  private async adaptOptionQuote(content: OptionQuoteResponse) {
+    return content;
+  }
 }
