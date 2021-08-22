@@ -24,7 +24,7 @@ export interface MovementOptions {
   change?: MoverChange;
 }
 
-export class Movers {
+export class MoverService {
   constructor(private client: Client) {}
 
   async get(index: string, movement?: MovementOptions) {

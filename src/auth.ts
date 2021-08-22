@@ -29,14 +29,25 @@ interface AuthConfig {
   tokens?: AuthTokens;
 }
 
-export class Auth {
+export class AuthService {
   private emitter = new EventEmitter2();
 
   constructor(private config: AuthConfig, private tokens: AuthTokens) {}
 
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  on(event: AuthEvent, fn: (...args: any[]) => void | Promise<void>) {
-    this.emitter.on(event, fn);
+  onAuth(fn: (url: string) => void | Promise<void>) {
+    this.emitter.on(AuthEvent.Auth, fn);
+  }
+
+  onTokens(fn: (tokens: AuthTokens) => void | Promise<void>) {
+    this.emitter.on(AuthEvent.Tokens, fn);
+  }
+
+  isAuthenticated() {
+    return this.isAccessTokenValid();
+  }
+
+  getTokens() {
+    return this.tokens;
   }
 
   setTokens(tokens: AuthTokens) {
@@ -55,19 +66,9 @@ export class Auth {
     return this.tokens.accessToken;
   }
 
-  async refreshTokens() {
-    if (!this.isRefreshTokenValid()) {
-      await this.refreshRefreshToken();
-    } else if (!this.isAccessTokenValid()) {
-      await this.refreshAccessToken();
-    }
-
-    return this.tokens;
-  }
-
   async authenticate() {
     if (this.isAccessTokenValid() || this.isRefreshTokenValid()) {
-      // Already authenticated, we don't need to bother.
+      await this.refreshTokens();
       return;
     }
 
@@ -128,6 +129,16 @@ export class Auth {
         );
       });
     });
+  }
+
+  private async refreshTokens() {
+    if (!this.isRefreshTokenValid()) {
+      await this.refreshRefreshToken();
+    } else if (!this.isAccessTokenValid()) {
+      await this.refreshAccessToken();
+    }
+
+    return this.tokens;
   }
 
   private async createAccessToken(code: string) {

@@ -16,7 +16,7 @@ enum AccountActivityField {
   MessageData = 3,
 }
 
-export enum AccountsEvent {
+export enum AccountEvent {
   AccountActivity = 'account-activity',
 }
 
@@ -49,16 +49,15 @@ interface AccountActivityResponse {
   [AccountActivityField.MessageData]: string | MessageError | null;
 }
 
-export class Accounts {
+export class AccountService {
   private subscriptionKey: string;
 
   private emitter = new EventEmitter2();
 
   constructor(private client: Client) {}
 
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  on(event: AccountsEvent, fn: (...args: any[]) => void | Promise<void>) {
-    this.emitter.on(event, fn);
+  onAccountActivity(fn: (activity: AccountActivity) => void | Promise<void>) {
+    this.emitter.on(AccountEvent.AccountActivity, fn);
   }
 
   setSubscriptionKey(subscriptionKey: string) {
@@ -81,7 +80,7 @@ export class Accounts {
       },
       async (response: AccountActivityResponse) => {
         const result = await this.adaptAccountActivity(response);
-        await this.emitter.emitAsync(AccountsEvent.AccountActivity, result);
+        await this.emitter.emitAsync(AccountEvent.AccountActivity, result);
       }
     );
   }

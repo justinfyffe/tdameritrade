@@ -1,17 +1,17 @@
 import { EventEmitter2 } from 'eventemitter2';
 import {
   AccountSettings,
-  UserInfo,
+  UserInfoService,
   UserPrincipal,
   UserPrincipalField,
 } from '../user-info';
-import { Accounts } from './accounts';
-import { Actives } from './actives';
-import { Charts } from './charts';
+import { AccountService } from './accounts';
+import { ActiveService } from './actives';
+import { ChartService } from './charts';
 import { Client } from './client';
-import { News } from './news';
+import { NewsService } from './news';
 import { Quotes } from './quotes';
-import { TimeSales } from './timesales';
+import { TimeSaleService } from './timesales';
 
 export enum QualityOfService {
   Express = 0, // 500ms
@@ -53,12 +53,12 @@ interface StreamOptions {
 }
 
 export class Stream {
-  readonly accounts: Accounts;
-  readonly actives: Actives;
-  readonly charts: Charts;
-  readonly news: News;
+  readonly accounts: AccountService;
+  readonly actives: ActiveService;
+  readonly charts: ChartService;
+  readonly news: NewsService;
   readonly quotes: Quotes;
-  readonly timeSales: TimeSales;
+  readonly timeSales: TimeSaleService;
 
   private client: Client;
   private userPrincipals: UserPrincipal;
@@ -66,15 +66,15 @@ export class Stream {
 
   private emitter = new EventEmitter2();
 
-  constructor(private userInfo: UserInfo) {
+  constructor(private userInfo: UserInfoService) {
     this.client = new Client();
 
-    this.accounts = new Accounts(this.client);
-    this.actives = new Actives(this.client);
-    this.charts = new Charts(this.client);
-    this.news = new News(this.client);
+    this.accounts = new AccountService(this.client);
+    this.actives = new ActiveService(this.client);
+    this.charts = new ChartService(this.client);
+    this.news = new NewsService(this.client);
     this.quotes = new Quotes(this.client);
-    this.timeSales = new TimeSales(this.client);
+    this.timeSales = new TimeSaleService(this.client);
   }
 
   // eslint-disable-next-line @typescript-eslint/no-explicit-any

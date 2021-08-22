@@ -199,7 +199,7 @@ export interface ListTransactionsOptions {
   endDate?: Date;
 }
 
-export class Transactions {
+export class TransactionService {
   constructor(private client: Client) {}
 
   async get(accountId: string, transactionId: number) {

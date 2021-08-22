@@ -2,7 +2,7 @@ import axios, { AxiosError, AxiosRequestConfig, AxiosResponse } from 'axios';
 import { EventEmitter2 } from 'eventemitter2';
 import * as querystring from 'querystring';
 import { v4 as uuidv4 } from 'uuid';
-import { Auth } from './auth';
+import { AuthService } from './auth';
 
 export enum ClientEvent {
   Request = 'request',
@@ -24,7 +24,7 @@ export interface ClientContext<T = unknown> {
 
 export interface ClientConfig {
   baseUrl: string;
-  auth: Auth;
+  auth: AuthService;
   timeout?: number;
   retries?: number;
 }
@@ -33,7 +33,7 @@ export class Client {
   private baseUrl: string;
   private timeout: number;
   private retries: number;
-  private auth: Auth;
+  private auth: AuthService;
 
   private emitter = new EventEmitter2();
 
@@ -44,9 +44,20 @@ export class Client {
     this.timeout = options.timeout ?? 10_000;
   }
 
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  on(event: ClientEvent, fn: (...args: any[]) => void | Promise<void>) {
-    this.emitter.on(event, fn);
+  onRequest(fn: (content: ClientContext) => void | Promise<void>) {
+    this.emitter.on(ClientEvent.Request, fn);
+  }
+
+  onResponse(fn: (content: ClientContext) => void | Promise<void>) {
+    this.emitter.on(ClientEvent.Response, fn);
+  }
+
+  onRetry(fn: (content: ClientContext) => void | Promise<void>) {
+    this.emitter.on(ClientEvent.Retry, fn);
+  }
+
+  onFailed(fn: (content: ClientContext) => void | Promise<void>) {
+    this.emitter.on(ClientEvent.Failed, fn);
   }
 
   // eslint-disable-next-line @typescript-eslint/no-explicit-any

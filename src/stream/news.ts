@@ -1,6 +1,19 @@
 import { EventEmitter2 } from 'eventemitter2';
 import { Client } from './client';
 
+export interface NewsHeadline {
+  symbol: string;
+  error?: number;
+  datetime: number;
+  headlineId: string;
+  status: string;
+  headline: string;
+  storyId: string;
+  keywords: string[];
+  hot: boolean;
+  source: string;
+}
+
 enum NewsHeadlineFields {
   Symbol = 0,
   ErrorCode = 1,
@@ -38,14 +51,13 @@ interface NewsHeadlineOptions {
   symbols: string[];
 }
 
-export class News {
+export class NewsService {
   private emitter = new EventEmitter2();
 
   constructor(private client: Client) {}
 
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  on(event: NewsEvent, fn: (...args: any[]) => void | Promise<void>) {
-    this.emitter.on(event, fn);
+  onNewsHeadline(fn: (newsHeadline: NewsHeadline) => void | Promise<void>) {
+    this.emitter.on(NewsEvent.NewsHeadline, fn);
   }
 
   subscribeToNewsHeadlines(options: NewsHeadlineOptions) {
@@ -63,13 +75,26 @@ export class News {
         },
       },
       async (response: NewsHeadlineResponse) => {
-        const result = await this.adaptNewsHeadline(response);
+        const result = this.adaptNewsHeadline(response);
         await this.emitter.emitAsync(NewsEvent.NewsHeadline, result);
       }
     );
   }
 
-  private async adaptNewsHeadline(content: NewsHeadlineResponse) {
-    return content;
+  private adaptNewsHeadline(content: NewsHeadlineResponse): NewsHeadline {
+    const error = content[NewsHeadlineFields.ErrorCode];
+
+    return {
+      symbol: content.key,
+      error: error !== 0 ? error : undefined,
+      datetime: content[NewsHeadlineFields.StoryDatetime],
+      headlineId: content[NewsHeadlineFields.HeadlineId],
+      status: content[NewsHeadlineFields.Status],
+      headline: content[NewsHeadlineFields.Headline],
+      storyId: content[NewsHeadlineFields.StoryId],
+      keywords: content[NewsHeadlineFields.KeywordArray].split(','),
+      hot: content[NewsHeadlineFields.IsHot],
+      source: content[NewsHeadlineFields.StorySource],
+    };
   }
 }

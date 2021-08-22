@@ -80,7 +80,7 @@ export interface SearchInstrumentsResponse {
   [symbol: string]: Instrument;
 }
 
-export class Instruments {
+export class InstrumentService {
   constructor(private client: Client) {}
 
   async search(symbol: string, projection: SearchInstrumentProjection) {

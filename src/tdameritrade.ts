@@ -1,17 +1,18 @@
-import { Accounts } from './accounts';
-import { Auth } from './auth';
+import { AccountService } from './accounts';
+import { AuthService } from './auth';
 import { Client } from './client';
-import { Instruments } from './instruments';
-import { MarketHours } from './market-hours';
-import { Movers } from './movers';
-import { OptionChains } from './option-chains';
-import { Orders } from './orders';
-import { PriceHistory } from './price-history';
-import { Quotes } from './quotes';
+import { InstrumentService } from './instruments';
+import { MarketHoursService } from './market-hours';
+import { MoverService } from './movers';
+import { OptionChainService } from './option-chains';
+import { OrderService } from './orders';
+import { PriceHistoryService } from './price-history';
+import { QuoteService } from './quotes';
 import { SavedOrders } from './saved-orders';
-import { Transactions } from './transactions';
-import { UserInfo } from './user-info';
-import { Watchlists } from './watchlists';
+import { Stream } from './stream/stream';
+import { TransactionService } from './transactions';
+import { UserInfoService } from './user-info';
+import { WatchlistService } from './watchlists';
 
 export interface TdAmeritradeTokens {
   accessToken?: string;
@@ -48,22 +49,23 @@ export async function tdameritrade(config: TdAmeritradeConfig) {
 
 export class TdAmeritrade {
   readonly client: Client;
-  readonly auth: Auth;
-  readonly accounts: Accounts;
-  readonly instruments: Instruments;
-  readonly marketHours: MarketHours;
-  readonly movers: Movers;
-  readonly optionChains: OptionChains;
-  readonly orders: Orders;
-  readonly priceHistory: PriceHistory;
-  readonly quotes: Quotes;
+  readonly auth: AuthService;
+  readonly accounts: AccountService;
+  readonly instruments: InstrumentService;
+  readonly marketHours: MarketHoursService;
+  readonly movers: MoverService;
+  readonly optionChains: OptionChainService;
+  readonly orders: OrderService;
+  readonly priceHistory: PriceHistoryService;
+  readonly quotes: QuoteService;
   readonly savedOrders: SavedOrders;
-  readonly transactions: Transactions;
-  readonly userInfo: UserInfo;
-  readonly watchlists: Watchlists;
+  readonly stream: Stream;
+  readonly transactions: TransactionService;
+  readonly userInfo: UserInfoService;
+  readonly watchlists: WatchlistService;
 
   constructor(config: TdAmeritradeConfig) {
-    this.auth = new Auth(
+    this.auth = new AuthService(
       {
         apiKey: config.apiKey,
         baseUrl: config.apiUrl ?? 'https://api.tdameritrade.com/v1',
@@ -87,17 +89,19 @@ export class TdAmeritrade {
       auth: this.auth,
     });
 
-    this.accounts = new Accounts(this.client);
-    this.instruments = new Instruments(this.client);
-    this.marketHours = new MarketHours(this.client);
-    this.movers = new Movers(this.client);
-    this.optionChains = new OptionChains(this.client);
-    this.orders = new Orders(this.client);
-    this.priceHistory = new PriceHistory(this.client);
-    this.quotes = new Quotes(this.client);
+    this.accounts = new AccountService(this.client);
+    this.instruments = new InstrumentService(this.client);
+    this.marketHours = new MarketHoursService(this.client);
+    this.movers = new MoverService(this.client);
+    this.optionChains = new OptionChainService(this.client);
+    this.orders = new OrderService(this.client);
+    this.priceHistory = new PriceHistoryService(this.client);
+    this.quotes = new QuoteService(this.client);
     this.savedOrders = new SavedOrders(this.client);
-    this.transactions = new Transactions(this.client);
-    this.userInfo = new UserInfo(this.client);
-    this.watchlists = new Watchlists(this.client);
+    this.transactions = new TransactionService(this.client);
+    this.userInfo = new UserInfoService(this.client);
+    this.watchlists = new WatchlistService(this.client);
+
+    this.stream = new Stream(this.userInfo);
   }
 }

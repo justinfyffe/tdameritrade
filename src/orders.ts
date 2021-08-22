@@ -180,7 +180,7 @@ export interface ListOrdersOptions {
   status?: OrderStatus;
 }
 
-export class Orders {
+export class OrderService {
   constructor(private client: Client) {}
 
   async cancel(accountId: string, orderId: number) {

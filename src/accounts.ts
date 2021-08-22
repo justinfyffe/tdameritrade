@@ -53,7 +53,7 @@ interface GetAccountResponse {
   securitiesAccount: Account;
 }
 
-export class Accounts {
+export class AccountService {
   constructor(private client: Client) {}
 
   async getAll(fieldOptions?: FieldOptions) {

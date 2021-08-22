@@ -1,6 +1,98 @@
 import { EventEmitter2 } from 'eventemitter2';
 import { Client } from './client';
 
+interface EquityQuote {
+  symbol: string;
+  bidPrice: number;
+  askPrice: number;
+  lastPrice: number;
+  bidSize: number;
+  askSize: number;
+  bidId: string;
+  askId: string;
+  totalVolume: number;
+  lastSize: number;
+  tradeTime: number;
+  quoteTime: number;
+  highPrice: number;
+  lowPrice: number;
+  bidTick: string;
+  closePrice: number;
+  exchangeId: string;
+  marginable: boolean;
+  shortable: boolean;
+  quoteDay: number;
+  tradeDay: number;
+  volatility: number;
+  description: string;
+  lastId: string;
+  digits: number;
+  openPrice: number;
+  netChange: number;
+  fiftyTwoWeekHigh: number;
+  fiftyTwoWeekLow: number;
+  peRatio: number;
+  dividendAmount: number;
+  dividendYield: number;
+  nav: number;
+  fundPrice: number;
+  exchangeName: string;
+  dividendDate: string;
+  regularMarketQuote: boolean;
+  regularMarketTrade: boolean;
+  regularMarketLastPrice: number;
+  regularMarketLastSize: number;
+  regularMarketTradeTime: number;
+  regularMarketTradeDay: number;
+  regularMarketNetChange: number;
+  securityStatus: string;
+  mark: number;
+  quoteTimeInLong: number;
+  tradeTimeInLong: number;
+  regularMarketTradeTimeInLong: number;
+}
+
+interface OptionQuote {
+  symbol: string;
+  description: string;
+  bidPrice: number;
+  askPrice: number;
+  lastPrice: number;
+  highPrice: number;
+  lowPrice: number;
+  closePrice: number;
+  totalVolume: number;
+  openInterest: number;
+  volatility: number;
+  quoteTime: number;
+  tradeTime: number;
+  quoteDay: number;
+  tradeDay: number;
+  expirationYear: number;
+  multiplier: number;
+  digits: number;
+  openPrice: number;
+  bidSize: number;
+  askSize: number;
+  lastSize: number;
+  netChange: number;
+  strikePrice: number;
+  contractType: string;
+  underlying: string;
+  expirationMonth: number;
+  daysToExpiration: number;
+  delta: number;
+  gamma: number;
+  theta: number;
+  vega: number;
+  rho: number;
+  securityStatus: string;
+  theoreticalOptionValue: number;
+  underlyingPrice: number;
+  uvExpirationType: string;
+  mark: number;
+}
+
 enum EquityQuoteFields {
   Symbol = 0,
   BidPrice = 1,
@@ -21,9 +113,6 @@ enum EquityQuoteFields {
   ExchangeId = 16,
   Marginable = 17,
   Shortable = 18,
-  IslandBid = 19,
-  IslandAsk = 20,
-  IslandVolume = 21,
   QuoteDay = 22,
   TradeDay = 23,
   Volatility = 24,
@@ -37,8 +126,6 @@ enum EquityQuoteFields {
   PeRatio = 32,
   DividendAmount = 33,
   DividendYield = 34,
-  IslandBidsize = 35,
-  IslandAskSize = 36,
   Nav = 37,
   FundPrice = 38,
   ExchangeName = 39,
@@ -53,7 +140,7 @@ enum EquityQuoteFields {
   SecurityStatus = 48,
   Mark = 49,
   QuoteTimeInLong = 50,
-  TradetimeInLong = 51,
+  TradeTimeInLong = 51,
   RegularMarketTradeTimeInLong = 52,
 }
 
@@ -102,14 +189,106 @@ enum OptionQuoteFields {
   Mark = 41,
 }
 
-export enum QuotesEvent {
+export enum QuoteEvent {
   EquityQuote = 'equity-quote',
   OptionQuote = 'option-quote',
 }
 
-interface EquityQuoteResponse {}
+interface EquityQuoteResponse {
+  key: string;
+  [EquityQuoteFields.BidPrice]: number;
+  [EquityQuoteFields.AskPrice]: number;
+  [EquityQuoteFields.LastPrice]: number;
+  [EquityQuoteFields.BidSize]: number;
+  [EquityQuoteFields.AskSize]: number;
+  [EquityQuoteFields.AskId]: string;
+  [EquityQuoteFields.BidId]: string;
+  [EquityQuoteFields.TotalVolume]: number;
+  [EquityQuoteFields.LastSize]: number;
+  [EquityQuoteFields.TradeTime]: number;
+  [EquityQuoteFields.QuoteTime]: number;
+  [EquityQuoteFields.HighPrice]: number;
+  [EquityQuoteFields.LowPrice]: number;
+  [EquityQuoteFields.BidTick]: string;
+  [EquityQuoteFields.ClosePrice]: number;
+  [EquityQuoteFields.ExchangeId]: string;
+  [EquityQuoteFields.Marginable]: boolean;
+  [EquityQuoteFields.Shortable]: boolean;
+  [EquityQuoteFields.QuoteDay]: number;
+  [EquityQuoteFields.TradeDay]: number;
+  [EquityQuoteFields.Volatility]: number;
+  [EquityQuoteFields.Description]: string;
+  [EquityQuoteFields.LastId]: string;
+  [EquityQuoteFields.Digits]: number;
+  [EquityQuoteFields.OpenPrice]: number;
+  [EquityQuoteFields.NetChange]: number;
+  [EquityQuoteFields.FiftyTwoWeekHigh]: number;
+  [EquityQuoteFields.FiftyTwoWeekLow]: number;
+  [EquityQuoteFields.PeRatio]: number;
+  [EquityQuoteFields.DividendAmount]: number;
+  [EquityQuoteFields.DividendYield]: number;
+  [EquityQuoteFields.Nav]: number;
+  [EquityQuoteFields.FundPrice]: number;
+  [EquityQuoteFields.ExchangeName]: string;
+  [EquityQuoteFields.DividendDate]: string;
+  [EquityQuoteFields.RegularMarketQuote]: boolean;
+  [EquityQuoteFields.RegularMarketTrade]: boolean;
+  [EquityQuoteFields.RegularMarketLastPrice]: number;
+  [EquityQuoteFields.RegularMarketLastSize]: number;
+  [EquityQuoteFields.RegularMarketTradeTime]: number;
+  [EquityQuoteFields.RegularMarketTradeDay]: number;
+  [EquityQuoteFields.RegularMarketNetChange]: number;
+  [EquityQuoteFields.SecurityStatus]: string;
+  [EquityQuoteFields.Mark]: number;
+  [EquityQuoteFields.QuoteTimeInLong]: number;
+  [EquityQuoteFields.TradeTimeInLong]: number;
+  [EquityQuoteFields.RegularMarketTradeTimeInLong]: number;
+}
 
-interface OptionQuoteResponse {}
+interface OptionQuoteResponse {
+  key: string;
+  [OptionQuoteFields.Description]: string;
+  [OptionQuoteFields.BidPrice]: number;
+  [OptionQuoteFields.AskPrice]: number;
+  [OptionQuoteFields.LastPrice]: number;
+  [OptionQuoteFields.HighPrice]: number;
+  [OptionQuoteFields.LowPrice]: number;
+  [OptionQuoteFields.ClosePrice]: number;
+  [OptionQuoteFields.TotalVolume]: number;
+  [OptionQuoteFields.OpenInterest]: number;
+  [OptionQuoteFields.Volatility]: number;
+  [OptionQuoteFields.QuoteTime]: number;
+  [OptionQuoteFields.TradeTime]: number;
+  [OptionQuoteFields.MoneyIntrinsicValue]: number;
+  [OptionQuoteFields.QuoteDay]: number;
+  [OptionQuoteFields.TradeDay]: number;
+  [OptionQuoteFields.ExpirationYear]: number;
+  [OptionQuoteFields.Multiplier]: number;
+  [OptionQuoteFields.Digits]: number;
+  [OptionQuoteFields.OpenPrice]: number;
+  [OptionQuoteFields.BidSize]: number;
+  [OptionQuoteFields.AskSize]: number;
+  [OptionQuoteFields.LastSize]: number;
+  [OptionQuoteFields.NetChange]: number;
+  [OptionQuoteFields.StrikePrice]: number;
+  [OptionQuoteFields.ContractType]: string;
+  [OptionQuoteFields.Underlying]: string;
+  [OptionQuoteFields.ExpirationMonth]: number;
+  [OptionQuoteFields.Deliverables]: string;
+  [OptionQuoteFields.TimeValue]: number;
+  [OptionQuoteFields.ExpirationDay]: number;
+  [OptionQuoteFields.DaysToExpiration]: number;
+  [OptionQuoteFields.Delta]: number;
+  [OptionQuoteFields.Gamma]: number;
+  [OptionQuoteFields.Theta]: number;
+  [OptionQuoteFields.Vega]: number;
+  [OptionQuoteFields.Rho]: number;
+  [OptionQuoteFields.SecurityStatus]: string;
+  [OptionQuoteFields.TheoreticalOptionValue]: number;
+  [OptionQuoteFields.UnderlyingPrice]: number;
+  [OptionQuoteFields.UvExpirationType]: string;
+  [OptionQuoteFields.Mark]: number;
+}
 
 interface EquityQuoteOptions {
   symbols: string[];
@@ -124,9 +303,12 @@ export class Quotes {
 
   constructor(private client: Client) {}
 
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  on(event: QuotesEvent, fn: (...args: any[]) => void | Promise<void>) {
-    this.emitter.on(event, fn);
+  onEquityQuote(fn: (quote: EquityQuote) => void | Promise<void>) {
+    this.emitter.on(QuoteEvent.EquityQuote, fn);
+  }
+
+  onOptionQuote(fn: (quote: OptionQuote) => void | Promise<void>) {
+    this.emitter.on(QuoteEvent.OptionQuote, fn);
   }
 
   subscribeToEquityQuotes(options: EquityQuoteOptions) {
@@ -144,8 +326,8 @@ export class Quotes {
         },
       },
       async (response: EquityQuoteResponse) => {
-        const result = await this.adaptEquityQuote(response);
-        await this.emitter.emitAsync(QuotesEvent.EquityQuote, result);
+        const result = this.adaptEquityQuote(response);
+        await this.emitter.emitAsync(QuoteEvent.EquityQuote, result);
       }
     );
   }
@@ -165,17 +347,106 @@ export class Quotes {
         },
       },
       async (response: OptionQuoteResponse) => {
-        const result = await this.adaptOptionQuote(response);
-        await this.emitter.emitAsync(QuotesEvent.OptionQuote, result);
+        const result = this.adaptOptionQuote(response);
+        await this.emitter.emitAsync(QuoteEvent.OptionQuote, result);
       }
     );
   }
 
-  private async adaptEquityQuote(content: EquityQuoteResponse) {
-    return content;
+  private adaptEquityQuote(content: EquityQuoteResponse): EquityQuote {
+    return {
+      symbol: content.key,
+      bidPrice: content[EquityQuoteFields.BidPrice],
+      askPrice: content[EquityQuoteFields.AskPrice],
+      lastPrice: content[EquityQuoteFields.LastPrice],
+      bidSize: content[EquityQuoteFields.BidSize],
+      askSize: content[EquityQuoteFields.AskSize],
+      bidId: content[EquityQuoteFields.BidId],
+      askId: content[EquityQuoteFields.AskId],
+      totalVolume: content[EquityQuoteFields.TotalVolume],
+      lastSize: content[EquityQuoteFields.LastSize],
+      tradeTime: content[EquityQuoteFields.TradeTime],
+      quoteTime: content[EquityQuoteFields.QuoteTime],
+      highPrice: content[EquityQuoteFields.HighPrice],
+      lowPrice: content[EquityQuoteFields.LowPrice],
+      bidTick: content[EquityQuoteFields.BidTick],
+      closePrice: content[EquityQuoteFields.ClosePrice],
+      exchangeId: content[EquityQuoteFields.ExchangeId],
+      marginable: content[EquityQuoteFields.Marginable],
+      shortable: content[EquityQuoteFields.Shortable],
+      quoteDay: content[EquityQuoteFields.QuoteDay],
+      tradeDay: content[EquityQuoteFields.TradeDay],
+      volatility: content[EquityQuoteFields.Volatility],
+      description: content[EquityQuoteFields.Description],
+      lastId: content[EquityQuoteFields.LastId],
+      digits: content[EquityQuoteFields.Digits],
+      openPrice: content[EquityQuoteFields.OpenPrice],
+      netChange: content[EquityQuoteFields.NetChange],
+      fiftyTwoWeekHigh: content[EquityQuoteFields.FiftyTwoWeekHigh],
+      fiftyTwoWeekLow: content[EquityQuoteFields.FiftyTwoWeekLow],
+      peRatio: content[EquityQuoteFields.PeRatio],
+      dividendAmount: content[EquityQuoteFields.DividendAmount],
+      dividendYield: content[EquityQuoteFields.DividendYield],
+      nav: content[EquityQuoteFields.Nav],
+      fundPrice: content[EquityQuoteFields.FundPrice],
+      exchangeName: content[EquityQuoteFields.ExchangeName],
+      dividendDate: content[EquityQuoteFields.DividendDate],
+      regularMarketQuote: content[EquityQuoteFields.RegularMarketQuote],
+      regularMarketTrade: content[EquityQuoteFields.RegularMarketTrade],
+      regularMarketLastPrice: content[EquityQuoteFields.RegularMarketLastPrice],
+      regularMarketLastSize: content[EquityQuoteFields.RegularMarketLastSize],
+      regularMarketTradeTime: content[EquityQuoteFields.RegularMarketTradeTime],
+      regularMarketTradeDay: content[EquityQuoteFields.RegularMarketTradeDay],
+      regularMarketNetChange: content[EquityQuoteFields.RegularMarketNetChange],
+      securityStatus: content[EquityQuoteFields.SecurityStatus],
+      mark: content[EquityQuoteFields.Mark],
+      quoteTimeInLong: content[EquityQuoteFields.QuoteTimeInLong],
+      tradeTimeInLong: content[EquityQuoteFields.TradeTimeInLong],
+      regularMarketTradeTimeInLong:
+        content[EquityQuoteFields.RegularMarketTradeTimeInLong],
+    };
   }
 
-  private async adaptOptionQuote(content: OptionQuoteResponse) {
-    return content;
+  private adaptOptionQuote(content: OptionQuoteResponse): OptionQuote {
+    return {
+      symbol: content.key,
+      description: content[OptionQuoteFields.Description],
+      bidPrice: content[OptionQuoteFields.BidPrice],
+      askPrice: content[OptionQuoteFields.AskPrice],
+      lastPrice: content[OptionQuoteFields.LastPrice],
+      highPrice: content[OptionQuoteFields.HighPrice],
+      lowPrice: content[OptionQuoteFields.LowPrice],
+      closePrice: content[OptionQuoteFields.ClosePrice],
+      totalVolume: content[OptionQuoteFields.TotalVolume],
+      openInterest: content[OptionQuoteFields.OpenInterest],
+      volatility: content[OptionQuoteFields.Volatility],
+      quoteTime: content[OptionQuoteFields.QuoteTime],
+      tradeTime: content[OptionQuoteFields.TradeTime],
+      quoteDay: content[OptionQuoteFields.QuoteDay],
+      tradeDay: content[OptionQuoteFields.TradeDay],
+      expirationYear: content[OptionQuoteFields.ExpirationYear],
+      multiplier: content[OptionQuoteFields.Multiplier],
+      digits: content[OptionQuoteFields.Digits],
+      openPrice: content[OptionQuoteFields.OpenPrice],
+      bidSize: content[OptionQuoteFields.BidSize],
+      askSize: content[OptionQuoteFields.AskSize],
+      lastSize: content[OptionQuoteFields.LastSize],
+      netChange: content[OptionQuoteFields.NetChange],
+      strikePrice: content[OptionQuoteFields.StrikePrice],
+      contractType: content[OptionQuoteFields.ContractType],
+      underlying: content[OptionQuoteFields.Underlying],
+      expirationMonth: content[OptionQuoteFields.ExpirationMonth],
+      daysToExpiration: content[OptionQuoteFields.DaysToExpiration],
+      delta: content[OptionQuoteFields.Delta],
+      gamma: content[OptionQuoteFields.Gamma],
+      theta: content[OptionQuoteFields.Theta],
+      vega: content[OptionQuoteFields.Vega],
+      rho: content[OptionQuoteFields.Rho],
+      securityStatus: content[OptionQuoteFields.SecurityStatus],
+      theoreticalOptionValue: content[OptionQuoteFields.TheoreticalOptionValue],
+      underlyingPrice: content[OptionQuoteFields.UnderlyingPrice],
+      uvExpirationType: content[OptionQuoteFields.UvExpirationType],
+      mark: content[OptionQuoteFields.Mark],
+    };
   }
 }

@@ -175,7 +175,7 @@ export interface AccountAuthorizations {
   scottradeAccount: boolean;
 }
 
-export class UserInfo {
+export class UserInfoService {
   constructor(private client: Client) {}
 
   async getPreferences(accountId: string) {

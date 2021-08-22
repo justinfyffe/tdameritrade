@@ -1,6 +1,27 @@
 import { EventEmitter2 } from 'eventemitter2';
 import { Client } from './client';
 
+export interface ChartEquity {
+  symbol: string;
+  openPrice: number;
+  highPrice: number;
+  lowPrice: number;
+  closePrice: number;
+  volume: number;
+  sequence: number;
+  chartTime: number;
+}
+
+export interface ChartOption {
+  symbol: string;
+  chartTime: number;
+  openPrice: number;
+  highPrice: number;
+  lowPrice: number;
+  closePrice: number;
+  volume: number;
+}
+
 enum ChartEquityFields {
   Key = 0,
   OpenPrice = 1,
@@ -10,7 +31,6 @@ enum ChartEquityFields {
   Volume = 5,
   Sequence = 6,
   ChartTime = 7,
-  ChartDay = 8,
 }
 
 enum ChartOptionFields {
@@ -23,7 +43,7 @@ enum ChartOptionFields {
   Volume = 6,
 }
 
-export enum ChartsEvent {
+export enum ChartEvent {
   ChartEquity = 'chart-equity',
   ChartOption = 'chart-option',
 }
@@ -38,7 +58,6 @@ interface ChartEquityResponse {
   [ChartEquityFields.Volume]: number;
   [ChartEquityFields.Sequence]: number;
   [ChartEquityFields.ChartTime]: number;
-  [ChartEquityFields.ChartDay]: number;
 }
 
 interface ChartOptionResponse {
@@ -60,14 +79,17 @@ interface ChartOptionOptions {
   symbols: string[];
 }
 
-export class Charts {
+export class ChartService {
   private emitter = new EventEmitter2();
 
   constructor(private client: Client) {}
 
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  on(event: ChartsEvent, fn: (...args: any[]) => void | Promise<void>) {
-    this.emitter.on(event, fn);
+  onChartEquity(fn: (chartEquity: ChartEquity) => void | Promise<void>) {
+    this.emitter.on(ChartEvent.ChartEquity, fn);
+  }
+
+  onChartOption(fn: (chartOption: ChartOption) => void | Promise<void>) {
+    this.emitter.on(ChartEvent.ChartOption, fn);
   }
 
   subscribeToChartEquities(options: ChartEquityOptions) {
@@ -85,8 +107,8 @@ export class Charts {
         },
       },
       async (response: ChartEquityResponse) => {
-        const result = await this.adaptChartEquity(response);
-        await this.emitter.emitAsync(ChartsEvent.ChartEquity, result);
+        const result = this.adaptChartEquity(response);
+        await this.emitter.emitAsync(ChartEvent.ChartEquity, result);
       }
     );
   }
@@ -106,17 +128,34 @@ export class Charts {
         },
       },
       async (response: ChartOptionResponse) => {
-        const result = await this.adaptChartOption(response);
-        await this.emitter.emitAsync(ChartsEvent.ChartOption, result);
+        const result = this.adaptChartOption(response);
+        await this.emitter.emitAsync(ChartEvent.ChartOption, result);
       }
     );
   }
 
-  private async adaptChartEquity(content: ChartEquityResponse) {
-    return content;
+  private adaptChartEquity(content: ChartEquityResponse): ChartEquity {
+    return {
+      symbol: content.key,
+      openPrice: content[ChartEquityFields.OpenPrice],
+      highPrice: content[ChartEquityFields.HighPrice],
+      lowPrice: content[ChartEquityFields.LowPrice],
+      closePrice: content[ChartEquityFields.ClosePrice],
+      volume: content[ChartEquityFields.Volume],
+      sequence: content[ChartEquityFields.Sequence],
+      chartTime: content[ChartEquityFields.ChartTime],
+    };
   }
 
-  private async adaptChartOption(content: ChartOptionResponse) {
-    return content;
+  private adaptChartOption(content: ChartOptionResponse): ChartOption {
+    return {
+      symbol: content.key,
+      openPrice: content[ChartOptionFields.OpenPrice],
+      highPrice: content[ChartOptionFields.HighPrice],
+      lowPrice: content[ChartOptionFields.LowPrice],
+      closePrice: content[ChartOptionFields.ClosePrice],
+      volume: content[ChartOptionFields.Volume],
+      chartTime: content[ChartOptionFields.ChartTime],
+    };
   }
 }

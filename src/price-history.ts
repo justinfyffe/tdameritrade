@@ -39,7 +39,7 @@ export interface GetPriceHistoryOptions {
   needExtendedHoursData?: boolean;
 }
 
-export class PriceHistory {
+export class PriceHistoryService {
   constructor(private client: Client) {}
 
   async get(symbol: string, options?: GetPriceHistoryOptions) {

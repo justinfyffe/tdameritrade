@@ -174,7 +174,7 @@ export interface GetOptionChainOptions {
   optionType?: OptionContractType;
 }
 
-export class OptionChains {
+export class OptionChainService {
   constructor(private client: Client) {}
 
   async get(symbol: string, options?: GetOptionChainOptions) {

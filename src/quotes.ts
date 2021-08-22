@@ -121,7 +121,7 @@ export interface GetQuotesResponse {
   [symbol: string]: Quote;
 }
 
-export class Quotes {
+export class QuoteService {
   constructor(private client: Client) {}
 
   async get(symbol: string) {

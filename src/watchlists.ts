@@ -53,7 +53,7 @@ interface UpdateWatchlistItem
   sequenceId: number;
 }
 
-export class Watchlists {
+export class WatchlistService {
   constructor(private client: Client) {}
 
   async create(accountId: string, watchlist: CreateWatchlistRequest) {

@@ -38,11 +38,11 @@ export interface MarketSessionDuration {
 
 export interface MarketHoursResponse {
   [marketType: string]: {
-    [product: string]: MarketHours;
+    [product: string]: MarketHoursService;
   };
 }
 
-export class MarketHours {
+export class MarketHoursService {
   constructor(private client: Client) {}
 
   async get(markets: MarketType | MarketType[], date: Date) {
