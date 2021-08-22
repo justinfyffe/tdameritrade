@@ -43,7 +43,7 @@ enum ChartOptionFields {
   Volume = 6,
 }
 
-export enum ChartEvent {
+enum ChartEvent {
   ChartEquity = 'chart-equity',
   ChartOption = 'chart-option',
 }

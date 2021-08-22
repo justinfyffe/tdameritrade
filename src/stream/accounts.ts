@@ -16,7 +16,7 @@ enum AccountActivityField {
   MessageData = 3,
 }
 
-export enum AccountEvent {
+enum AccountEvent {
   AccountActivity = 'account-activity',
 }
 

@@ -28,7 +28,7 @@ enum NewsHeadlineFields {
   StorySource = 10,
 }
 
-export enum NewsEvent {
+enum NewsEvent {
   NewsHeadline = 'news-headline',
 }
 

@@ -36,7 +36,7 @@ enum ActivesField {
   Data = 1,
 }
 
-export enum ActivesEvent {
+enum ActivesEvent {
   Actives = 'actives',
 }
 

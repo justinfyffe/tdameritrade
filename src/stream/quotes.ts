@@ -189,7 +189,7 @@ enum OptionQuoteFields {
   Mark = 41,
 }
 
-export enum QuoteEvent {
+enum QuoteEvent {
   EquityQuote = 'equity-quote',
   OptionQuote = 'option-quote',
 }

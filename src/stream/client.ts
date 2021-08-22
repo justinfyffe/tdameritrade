@@ -2,7 +2,7 @@ import { EventEmitter2 } from 'eventemitter2';
 import { v4 as uuidv4 } from 'uuid';
 import * as WebSocket from 'ws';
 
-export enum ClientEvent {
+enum ClientEvent {
   Open = 'open',
   Close = 'close',
   Error = 'error',
@@ -70,6 +70,18 @@ export class Client {
   private requests = new Map<string, RequestContext>();
 
   constructor() {}
+
+  onOpen(fn: () => void | Promise<void>) {
+    this.emitter.on(ClientEvent.Open, fn);
+  }
+
+  onClose(fn: () => void | Promise<void>) {
+    this.emitter.on(ClientEvent.Open, fn);
+  }
+
+  onError(fn: (error: Error) => void | Promise<void>) {
+    this.emitter.on(ClientEvent.Error, fn);
+  }
 
   isOpen() {
     return this.socket.readyState === this.socket.OPEN;

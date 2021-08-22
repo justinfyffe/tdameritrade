@@ -17,7 +17,7 @@ enum TimeSaleFields {
   LastSequence = 4,
 }
 
-export enum TimeSaleEvent {
+enum TimeSaleEvent {
   EquityTimeSales = 'equity-time-sales',
   OptionTimeSales = 'option-time-sales',
 }

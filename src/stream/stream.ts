@@ -22,7 +22,7 @@ export enum QualityOfService {
   Delayed = 5, // 5000ms
 }
 
-export enum StreamEvent {
+enum StreamEvent {
   Open = 'open',
   Close = 'close',
   Error = 'error',
@@ -75,11 +75,30 @@ export class Stream {
     this.news = new NewsService(this.client);
     this.quotes = new Quotes(this.client);
     this.timeSales = new TimeSaleService(this.client);
+
+    this.client.onOpen(async () => {
+      await this.emitter.emitAsync(StreamEvent.Open);
+    });
+
+    this.client.onClose(async () => {
+      await this.emitter.emitAsync(StreamEvent.Close);
+    });
+
+    this.client.onError(async (error: Error) => {
+      await this.emitter.emitAsync(StreamEvent.Error, error);
+    });
   }
 
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  on(event: StreamEvent, fn: (...args: any[]) => void | Promise<void>) {
-    this.emitter.on(event, fn);
+  onOpen(fn: () => void | Promise<void>) {
+    this.emitter.on(StreamEvent.Open, fn);
+  }
+
+  onClose(fn: () => void | Promise<void>) {
+    this.emitter.on(StreamEvent.Close, fn);
+  }
+
+  onError(fn: (error: Error) => void | Promise<void>) {
+    this.emitter.on(StreamEvent.Error, fn);
   }
 
   async open(options?: StreamOptions) {
