@@ -1,17 +1,17 @@
 import { Client } from './client';
 
 export enum MarketType {
-  Bond = 'BOND',
-  Equity = 'EQUITY',
-  ETF = 'ETF',
-  Forex = 'FOREX',
-  Future = 'FUTURE',
-  FutureOptions = 'FUTURE_OPTIONS',
-  Index = 'INDEX',
-  Indicator = 'INDICATOR',
-  MutualFund = 'MUTUAL_FUND',
-  Option = 'OPTION',
-  Unknown = 'UNKNOWN',
+  Bond = 'bond',
+  Equity = 'equity',
+  Future = 'future',
+  Forex = 'forex',
+  Option = 'option',
+}
+
+export enum ProductType {
+  Equity = 'EQ',
+  EquityOption = 'EQO',
+  IndexOption = 'IND',
 }
 
 export interface MarketHours {
@@ -38,7 +38,7 @@ export interface MarketSessionDuration {
 
 export interface MarketHoursResponse {
   [marketType: string]: {
-    [product: string]: MarketHours;
+    [productType: string]: MarketHours;
   };
 }
 
@@ -48,10 +48,13 @@ export class MarketHoursService {
   async get(markets: MarketType | MarketType[], date: Date) {
     const path = Array.isArray(markets)
       ? 'marketdata/hours'
-      : `marketdata/${markets}/hours`;
+      : `marketdata/${markets.toUpperCase()}/hours`;
 
     const query = Array.isArray(markets)
-      ? { date: date.toISOString(), markets }
+      ? {
+          date: date.toISOString(),
+          markets: markets.map((market) => market.toUpperCase()),
+        }
       : { date: date.toISOString() };
 
     const response = await this.client.get<MarketHoursResponse>(path, query);
