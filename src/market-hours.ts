@@ -38,7 +38,7 @@ export interface MarketSessionDuration {
 
 export interface MarketHoursResponse {
   [marketType: string]: {
-    [product: string]: MarketHoursService;
+    [product: string]: MarketHours;
   };
 }
 
