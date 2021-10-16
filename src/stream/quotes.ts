@@ -194,7 +194,7 @@ enum QuoteEvent {
   OptionQuote = 'option-quote',
 }
 
-interface EquityQuoteResponse {
+interface EquityQuoteData {
   key: string;
   [EquityQuoteFields.BidPrice]: number;
   [EquityQuoteFields.AskPrice]: number;
@@ -245,7 +245,7 @@ interface EquityQuoteResponse {
   [EquityQuoteFields.RegularMarketTradeTimeInLong]: number;
 }
 
-interface OptionQuoteResponse {
+interface OptionQuoteData {
   key: string;
   [OptionQuoteFields.Description]: string;
   [OptionQuoteFields.BidPrice]: number;
@@ -301,7 +301,11 @@ interface OptionQuoteOptions {
 export class Quotes {
   private emitter = new EventEmitter2();
 
-  constructor(private client: Client) {}
+  constructor(private client: Client) {
+    this.setupEmitter();
+  }
+
+  // Events
 
   onEquityQuote(fn: (quote: EquityQuote) => void | Promise<void>) {
     this.emitter.on(QuoteEvent.EquityQuote, fn);
@@ -311,25 +315,21 @@ export class Quotes {
     this.emitter.on(QuoteEvent.OptionQuote, fn);
   }
 
+  // Stream Operations
+
   subscribeToEquityQuotes(options: EquityQuoteOptions) {
     const fields = Object.values(EquityQuoteFields).filter(
       (value) => typeof value === 'number'
     );
 
-    this.client.send(
-      {
-        service: 'QUOTE',
-        command: 'SUBS',
-        parameters: {
-          keys: options.symbols.map((symbol) => symbol.toUpperCase()).join(','),
-          fields: fields.join(','),
-        },
+    this.client.send({
+      service: 'QUOTE',
+      command: 'SUBS',
+      parameters: {
+        keys: options.symbols.map((symbol) => symbol.toUpperCase()).join(','),
+        fields: fields.join(','),
       },
-      async (response: EquityQuoteResponse) => {
-        const result = this.adaptEquityQuote(response);
-        await this.emitter.emitAsync(QuoteEvent.EquityQuote, result);
-      }
-    );
+    });
   }
 
   subscribeToOptionQuotes(options: OptionQuoteOptions) {
@@ -337,23 +337,19 @@ export class Quotes {
       (value) => typeof value === 'number'
     );
 
-    this.client.send(
-      {
-        service: 'OPTION',
-        command: 'SUBS',
-        parameters: {
-          keys: options.symbols.map((symbol) => symbol.toUpperCase()).join(','),
-          fields: fields.join(','),
-        },
+    this.client.send({
+      service: 'OPTION',
+      command: 'SUBS',
+      parameters: {
+        keys: options.symbols.map((symbol) => symbol.toUpperCase()).join(','),
+        fields: fields.join(','),
       },
-      async (response: OptionQuoteResponse) => {
-        const result = this.adaptOptionQuote(response);
-        await this.emitter.emitAsync(QuoteEvent.OptionQuote, result);
-      }
-    );
+    });
   }
 
-  private adaptEquityQuote(content: EquityQuoteResponse): EquityQuote {
+  // Adapters
+
+  private adaptEquityQuote(content: EquityQuoteData): EquityQuote {
     return {
       symbol: content.key,
       bidPrice: content[EquityQuoteFields.BidPrice],
@@ -407,7 +403,7 @@ export class Quotes {
     };
   }
 
-  private adaptOptionQuote(content: OptionQuoteResponse): OptionQuote {
+  private adaptOptionQuote(content: OptionQuoteData): OptionQuote {
     return {
       symbol: content.key,
       description: content[OptionQuoteFields.Description],
@@ -448,5 +444,23 @@ export class Quotes {
       uvExpirationType: content[OptionQuoteFields.UvExpirationType],
       mark: content[OptionQuoteFields.Mark],
     };
+  }
+
+  // Utilities
+
+  private setupEmitter() {
+    this.client.onData('QUOTE', 'SUBS', async (data: EquityQuoteData[]) => {
+      data.forEach(async (raw) => {
+        const result = this.adaptEquityQuote(raw);
+        await this.emitter.emitAsync(QuoteEvent.EquityQuote, result);
+      });
+    });
+
+    this.client.onData('OPTION', 'SUBS', async (data: OptionQuoteData[]) => {
+      data.forEach(async (raw) => {
+        const result = this.adaptOptionQuote(raw);
+        await this.emitter.emitAsync(QuoteEvent.OptionQuote, result);
+      });
+    });
   }
 }

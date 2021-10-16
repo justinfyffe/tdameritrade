@@ -18,11 +18,11 @@ enum TimeSaleFields {
 }
 
 enum TimeSaleEvent {
-  EquityTimeSales = 'equity-time-sales',
-  OptionTimeSales = 'option-time-sales',
+  EquityTimeSale = 'equity-time-sale',
+  OptionTimeSale = 'option-time-sale',
 }
 
-interface TimeSaleResponse {
+interface TimeSaleData {
   key: string;
   seq: number;
   [TimeSaleFields.TradeTime]: number;
@@ -38,35 +38,35 @@ interface TimeSaleOptions {
 export class TimeSaleService {
   private emitter = new EventEmitter2();
 
-  constructor(private client: Client) {}
+  constructor(private client: Client) {
+    this.setupEmitter();
+  }
+
+  // Events
 
   onEquityTimeSale(fn: (timesale: TimeSale) => void | Promise<void>) {
-    this.emitter.on(TimeSaleEvent.EquityTimeSales, fn);
+    this.emitter.on(TimeSaleEvent.EquityTimeSale, fn);
   }
 
   onOptionTimeSale(fn: (timesale: TimeSale) => void | Promise<void>) {
-    this.emitter.on(TimeSaleEvent.OptionTimeSales, fn);
+    this.emitter.on(TimeSaleEvent.OptionTimeSale, fn);
   }
+
+  // Stream Operations
 
   subscribeToEquityTimeSales(options: TimeSaleOptions) {
     const fields = Object.values(TimeSaleFields).filter(
       (value) => typeof value === 'number'
     );
 
-    this.client.send(
-      {
-        service: 'TIMESALE_EQUITY',
-        command: 'SUBS',
-        parameters: {
-          keys: options.symbols.map((symbol) => symbol.toUpperCase()).join(','),
-          fields: fields.join(','),
-        },
+    this.client.send({
+      service: 'TIMESALE_EQUITY',
+      command: 'SUBS',
+      parameters: {
+        keys: options.symbols.map((symbol) => symbol.toUpperCase()).join(','),
+        fields: fields.join(','),
       },
-      async (response: TimeSaleResponse) => {
-        const result = this.adaptTimeSale(response);
-        await this.emitter.emitAsync(TimeSaleEvent.EquityTimeSales, result);
-      }
-    );
+    });
   }
 
   subscribeToOptionTimeSales(options: TimeSaleOptions) {
@@ -74,23 +74,19 @@ export class TimeSaleService {
       (value) => typeof value === 'number'
     );
 
-    this.client.send(
-      {
-        service: 'TIMESALE_OPTIONS',
-        command: 'SUBS',
-        parameters: {
-          keys: options.symbols.map((symbol) => symbol.toUpperCase()).join(','),
-          fields: fields.join(','),
-        },
+    this.client.send({
+      service: 'TIMESALE_OPTIONS',
+      command: 'SUBS',
+      parameters: {
+        keys: options.symbols.map((symbol) => symbol.toUpperCase()).join(','),
+        fields: fields.join(','),
       },
-      async (response: TimeSaleResponse) => {
-        const result = this.adaptTimeSale(response);
-        await this.emitter.emitAsync(TimeSaleEvent.OptionTimeSales, result);
-      }
-    );
+    });
   }
 
-  private adaptTimeSale(content: TimeSaleResponse): TimeSale {
+  // Adapters
+
+  private adaptTimeSale(content: TimeSaleData): TimeSale {
     return {
       symbol: content.key,
       tradeTime: content[TimeSaleFields.TradeTime],
@@ -98,5 +94,31 @@ export class TimeSaleService {
       lastSize: content[TimeSaleFields.LastSize],
       lastSequence: content[TimeSaleFields.LastSequence],
     };
+  }
+
+  // Utilities
+
+  private setupEmitter() {
+    this.client.onData(
+      'TIMESALE_EQUITY',
+      'SUBS',
+      async (data: TimeSaleData[]) => {
+        data.forEach(async (raw) => {
+          const result = this.adaptTimeSale(raw);
+          await this.emitter.emitAsync(TimeSaleEvent.EquityTimeSale, result);
+        });
+      }
+    );
+
+    this.client.onData(
+      'TIMESALE_OPTIONS',
+      'SUBS',
+      async (data: TimeSaleData[]) => {
+        data.forEach(async (raw) => {
+          const result = this.adaptTimeSale(raw);
+          await this.emitter.emitAsync(TimeSaleEvent.OptionTimeSale, result);
+        });
+      }
+    );
   }
 }

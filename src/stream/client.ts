@@ -6,6 +6,8 @@ enum ClientEvent {
   Open = 'open',
   Close = 'close',
   Error = 'error',
+  Data = 'data',
+  Status = 'status',
 }
 
 export interface StreamRequest {
@@ -17,40 +19,23 @@ export interface StreamRequest {
   parameters?: unknown;
 }
 
+interface StreamResponse {
+  notify?: HeartbeatResponse[];
+  data?: ContentResponse[];
+  response?: ContentResponse[];
+}
+
 interface HeartbeatResponse {
   heartbeat: string;
 }
 
-interface Response {
-  notify?: HeartbeatResponse[];
-  data?: (DataResponse | CodeResponse)[];
-  response?: (DataResponse | CodeResponse)[];
-}
-
-interface DataResponse {
+interface ContentResponse {
   service: string;
   command: string;
-  requestid: string;
+  requestid?: string;
   timestamp: number;
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   content: any;
-}
-
-interface CodeResponse {
-  service: string;
-  command: string;
-  requestid: string;
-  timestamp: number;
-  content: {
-    code: number;
-    msg: string;
-  };
-}
-
-interface RequestContext {
-  onSuccess?: (message: string) => void | Promise<void>;
-  onError?: (message: string) => void | Promise<void>;
-  onData?: (result: unknown) => void | Promise<void>;
 }
 
 interface SendOptions {
@@ -66,10 +51,13 @@ export class Client {
 
   private emitter = new EventEmitter2();
 
-  // Map holding all request ids -> request contexts
-  private requests = new Map<string, RequestContext>();
-
   constructor() {}
+
+  public get isOpen() {
+    return this.socket != null && this.socket.readyState === this.socket.OPEN;
+  }
+
+  // Events
 
   onOpen(fn: () => void | Promise<void>) {
     this.emitter.on(ClientEvent.Open, fn);
@@ -83,12 +71,19 @@ export class Client {
     this.emitter.on(ClientEvent.Error, fn);
   }
 
-  isOpen() {
-    return this.socket.readyState === this.socket.OPEN;
+  onData(
+    service: string,
+    command: string,
+    fn: (data: unknown) => void | Promise<void>
+  ) {
+    const event = this.getServiceEvent(service, command);
+    this.emitter.on(event, fn);
   }
 
+  // Stream Operations
+
   async open(streamUrl: string, appId: string, accountId: string) {
-    if (this.socket != null && this.isOpen()) {
+    if (this.socket != null && this.isOpen) {
       return;
     }
 
@@ -117,15 +112,12 @@ export class Client {
   }
 
   close() {
-    if (this.isOpen()) {
+    if (this.isOpen) {
       this.socket.close();
     }
   }
 
-  send(
-    options: SendOptions,
-    onData?: (result: unknown) => void | Promise<void>
-  ): void | Promise<void> {
+  send(options: SendOptions) {
     const requestId = this.generateRequestId();
     const request: StreamRequest = {
       service: options.service,
@@ -136,75 +128,60 @@ export class Client {
       source: this.appId,
     };
 
-    return new Promise<void>((resolve, reject) => {
-      this.requests.set(requestId, {
-        onSuccess: () => this.handleSuccess(requestId, resolve),
-        onError: () => this.handleError(requestId, reject),
-        onData,
+    return new Promise((resolve, reject) => {
+      const event = this.getStatusEvent(options.service, options.command);
+      this.emitter.once(event, (response: { code: number; msg: string }) => {
+        if (response.code === 0) {
+          resolve(response.msg);
+        } else {
+          reject(response.msg);
+        }
       });
-    }).then(() => {
+
       this.socket.send(JSON.stringify({ requests: [request] }));
     });
   }
+
+  // Utilities
 
   private generateRequestId() {
     return uuidv4();
   }
 
-  private async handleSuccess(requestId: string, resolve: () => void) {
-    this.requests.delete(requestId);
-    resolve();
-  }
-
-  private async handleError(requestId: string, reject: () => void) {
-    this.requests.delete(requestId);
-    reject();
-  }
-
   private async processMessage(message: WebSocket.Data) {
-    const data: Response = JSON.parse(message.toString());
+    const data: StreamResponse = JSON.parse(message.toString());
 
     if ('notify' in data) {
       // Just a heartbeat, return
       return;
     }
 
-    console.log('data');
-    console.log(data);
-    console.log('data.data.content');
-    console.log(data.data?.[0]?.content);
-    console.log('data.response.content');
-    console.log(data.response?.[0]?.content);
-
     const responses = data.response || data.data;
     for (const response of responses!) {
-      if ('code' in response.content) {
-        await this.processCodeResponse(response);
-      } else {
-        await this.processDataResponse(response);
-      }
+      await this.processResponse(response);
     }
   }
 
-  private async processCodeResponse(response: CodeResponse) {
-    const context = this.requests.get(response.requestid);
-    if (context == null) {
-      return;
-    }
-
-    if (response.content.code === 0) {
-      await context.onSuccess?.(response.content.msg);
+  private async processResponse(response: ContentResponse) {
+    let event: string;
+    if ('code' in response.content && 'msg' in response.content) {
+      event = this.getStatusEvent(response.service, response.command);
     } else {
-      await context.onError?.(response.content.msg);
+      event = this.getServiceEvent(response.service, response.command);
     }
+
+    await this.emitter.emitAsync(event, response.content);
   }
 
-  private async processDataResponse(response: DataResponse) {
-    const context = this.requests.get(response.requestid);
-    if (context == null) {
-      return;
-    }
+  private getServiceEvent(service: string, command: string) {
+    return `${
+      ClientEvent.Data
+    }-${service.toLowerCase()}-${command.toLowerCase()}`;
+  }
 
-    await context.onData?.(response.content);
+  private getStatusEvent(service: string, command: string) {
+    return `${
+      ClientEvent.Status
+    }-${service.toLowerCase()}-${command.toLowerCase()}`;
   }
 }

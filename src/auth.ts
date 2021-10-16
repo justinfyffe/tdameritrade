@@ -56,11 +56,7 @@ export class AuthService {
 
   async getAccessToken() {
     if (this.config.autoRefreshTokens) {
-      if (!this.isRefreshTokenValid()) {
-        await this.refreshRefreshToken();
-      } else if (!this.isAccessTokenValid()) {
-        await this.refreshAccessToken();
-      }
+      await this.refreshTokens();
     }
 
     return this.tokens.accessToken;
@@ -137,8 +133,6 @@ export class AuthService {
     } else if (!this.isAccessTokenValid()) {
       await this.refreshAccessToken();
     }
-
-    return this.tokens;
   }
 
   private async createAccessToken(code: string) {

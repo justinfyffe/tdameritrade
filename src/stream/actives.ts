@@ -40,7 +40,7 @@ enum ActivesEvent {
   Actives = 'actives',
 }
 
-interface ActivesResponse {
+interface ActivesData {
   key: string;
   [ActivesField.Data]: string;
 }
@@ -52,7 +52,9 @@ export enum ActivesVenue {
   Options = 'OPTS',
   Calls = 'CALLS',
   Puts = 'PUTS',
+  OptionsDesc = 'OPTS-DESC',
   CallsDesc = 'CALLS-DESC',
+  PutsDesc = 'PUTS-DESC',
 }
 
 type Duration = 3600 | 1800 | 600 | 300 | 60;
@@ -65,34 +67,33 @@ interface ActivesOptions {
 export class ActiveService {
   private emitter = new EventEmitter2();
 
-  constructor(private client: Client) {}
-
-  onActives(
-    event: ActivesEvent,
-    fn: (actives: Actives) => void | Promise<void>
-  ) {
-    this.emitter.on(event, fn);
+  constructor(private client: Client) {
+    this.setupEmitter();
   }
+
+  // Events
+
+  onActives(fn: (actives: Actives) => void | Promise<void>) {
+    this.emitter.on(ActivesEvent.Actives, fn);
+  }
+
+  // Stream Operations
 
   subscribeToActives(options: ActivesOptions) {
     const service = this.getService(options.venue);
-    this.client.send(
-      {
-        service,
-        command: 'SUBS',
-        parameters: {
-          keys: this.getKey(options.venue, options.duration),
-          fields: [ActivesField.Key, ActivesField.Data].join(','),
-        },
+    this.client.send({
+      service,
+      command: 'SUBS',
+      parameters: {
+        keys: this.getKey(options.venue, options.duration),
+        fields: [ActivesField.Key, ActivesField.Data].join(','),
       },
-      async (response: ActivesResponse) => {
-        const result = this.adaptActives(response, service);
-        await this.emitter.emitAsync(ActivesEvent.Actives, result);
-      }
-    );
+    });
   }
 
-  private adaptActives(content: ActivesResponse, service: string) {
+  // Adapters
+
+  private adaptActives(content: ActivesData, service: string) {
     const key = content.key;
     const [venue, duration] = key.split('-');
 
@@ -160,6 +161,8 @@ export class ActiveService {
     return result;
   }
 
+  // Utilities
+
   private getService(venue: ActivesVenue) {
     switch (venue) {
       case ActivesVenue.Nasdaq:
@@ -175,5 +178,24 @@ export class ActiveService {
 
   private getKey(venue: ActivesVenue, duration?: Duration) {
     return `${venue}-${duration ?? 'ALL'}`;
+  }
+
+  private setupEmitter() {
+    const services = [
+      'ACTIVES_NASDAQ',
+      'ACTIVES_NYSE',
+      'ACTIVES_OTCBB',
+      'ACTIVES_OPTIONS',
+    ];
+    const command = 'SUBS';
+
+    services.forEach((service) => {
+      this.client.onData(service, command, async (data: ActivesData[]) => {
+        data.forEach(async (raw) => {
+          const result = this.adaptActives(raw, service);
+          await this.emitter.emitAsync(ActivesEvent.Actives, result);
+        });
+      });
+    });
   }
 }

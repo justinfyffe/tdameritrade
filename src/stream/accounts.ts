@@ -42,7 +42,7 @@ enum MessageError {
   SystemError = 'SYSTEM_ERROR',
 }
 
-interface AccountActivityResponse {
+interface AccountActivityData {
   key: string;
   [AccountActivityField.AccountId]: string;
   [AccountActivityField.MessageType]: MessageType;
@@ -50,54 +50,52 @@ interface AccountActivityResponse {
 }
 
 export class AccountService {
-  private subscriptionKey: string;
+  subscriptionKey: string;
 
   private emitter = new EventEmitter2();
 
-  constructor(private client: Client) {}
+  constructor(private client: Client) {
+    this.setupEmitter();
+  }
+
+  // Events
 
   onAccountActivity(fn: (activity: AccountActivity) => void | Promise<void>) {
     this.emitter.on(AccountEvent.AccountActivity, fn);
   }
 
-  setSubscriptionKey(subscriptionKey: string) {
-    this.subscriptionKey = subscriptionKey;
-  }
+  // Stream Operations
 
   subscribeToAccountActivity() {
     const fields = Object.values(AccountActivityField).filter(
       (value) => typeof value === 'number'
     );
 
-    this.client.send(
-      {
-        service: 'ACCT_ACTIVITY',
-        command: 'SUBS',
-        parameters: {
-          keys: this.subscriptionKey,
-          fields: fields.join(','),
-        },
+    this.client.send({
+      service: 'ACCT_ACTIVITY',
+      command: 'SUBS',
+      parameters: {
+        keys: this.subscriptionKey,
+        fields: fields.join(','),
       },
-      async (response: AccountActivityResponse) => {
-        const result = await this.adaptAccountActivity(response);
-        await this.emitter.emitAsync(AccountEvent.AccountActivity, result);
-      }
-    );
+    });
   }
 
-  private async adaptAccountActivity(
-    content: AccountActivityResponse
-  ): Promise<AccountActivity> {
-    const accountId = content[AccountActivityField.AccountId];
-    const messageType = content[AccountActivityField.MessageType];
-    const messageData = content[AccountActivityField.MessageData];
+  // Adapters
 
-    let data;
+  private async adaptAccountActivity(
+    data: AccountActivityData
+  ): Promise<AccountActivity> {
+    const accountId = data[AccountActivityField.AccountId];
+    const messageType = data[AccountActivityField.MessageType];
+    const messageData = data[AccountActivityField.MessageData];
+
+    let message;
     if (messageData != null) {
-      data =
+      message =
         messageType != MessageType.Error
           ? await xml2js.parseStringPromise(
-              content[AccountActivityField.MessageData] as string
+              data[AccountActivityField.MessageData] as string
             )
           : (messageData as MessageError);
     }
@@ -105,7 +103,25 @@ export class AccountService {
     return {
       accountId,
       type: messageType,
-      data,
+      data: message,
     };
+  }
+
+  // Utilities
+
+  private setupEmitter() {
+    const service = 'ACCT_ACTIVITY';
+    const command = 'SUBS';
+
+    this.client.onData(
+      service,
+      command,
+      async (data: AccountActivityData[]) => {
+        data.forEach(async (raw) => {
+          const result = await this.adaptAccountActivity(raw);
+          await this.emitter.emitAsync(AccountEvent.AccountActivity, result);
+        });
+      }
+    );
   }
 }

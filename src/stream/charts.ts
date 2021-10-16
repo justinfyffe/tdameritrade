@@ -48,7 +48,7 @@ enum ChartEvent {
   ChartOption = 'chart-option',
 }
 
-interface ChartEquityResponse {
+interface ChartEquityData {
   key: string;
   seq: number;
   [ChartEquityFields.OpenPrice]: number;
@@ -60,7 +60,7 @@ interface ChartEquityResponse {
   [ChartEquityFields.ChartTime]: number;
 }
 
-interface ChartOptionResponse {
+interface ChartOptionData {
   key: string;
   seq: number;
   [ChartOptionFields.ChartTime]: number;
@@ -82,7 +82,11 @@ interface ChartOptionOptions {
 export class ChartService {
   private emitter = new EventEmitter2();
 
-  constructor(private client: Client) {}
+  constructor(private client: Client) {
+    this.setupEmitter();
+  }
+
+  // Events
 
   onChartEquity(fn: (chartEquity: ChartEquity) => void | Promise<void>) {
     this.emitter.on(ChartEvent.ChartEquity, fn);
@@ -92,25 +96,21 @@ export class ChartService {
     this.emitter.on(ChartEvent.ChartOption, fn);
   }
 
+  // Stream Operations
+
   subscribeToChartEquities(options: ChartEquityOptions) {
     const fields = Object.values(ChartEquityFields).filter(
       (value) => typeof value === 'number'
     );
 
-    this.client.send(
-      {
-        service: 'CHART_EQUITY',
-        command: 'SUBS',
-        parameters: {
-          keys: options.symbols.map((symbol) => symbol.toUpperCase()).join(','),
-          fields: fields.join(','),
-        },
+    this.client.send({
+      service: 'CHART_EQUITY',
+      command: 'SUBS',
+      parameters: {
+        keys: options.symbols.map((symbol) => symbol.toUpperCase()).join(','),
+        fields: fields.join(','),
       },
-      async (response: ChartEquityResponse) => {
-        const result = this.adaptChartEquity(response);
-        await this.emitter.emitAsync(ChartEvent.ChartEquity, result);
-      }
-    );
+    });
   }
 
   subscribeToChartOptions(options: ChartOptionOptions) {
@@ -118,44 +118,67 @@ export class ChartService {
       (value) => typeof value === 'number'
     );
 
-    this.client.send(
-      {
-        service: 'CHART_OPTIONS',
-        command: 'SUBS',
-        parameters: {
-          keys: options.symbols.map((symbol) => symbol.toUpperCase()).join(','),
-          fields: fields.join(','),
-        },
+    this.client.send({
+      service: 'CHART_OPTIONS',
+      command: 'SUBS',
+      parameters: {
+        keys: options.symbols.map((symbol) => symbol.toUpperCase()).join(','),
+        fields: fields.join(','),
       },
-      async (response: ChartOptionResponse) => {
-        const result = this.adaptChartOption(response);
-        await this.emitter.emitAsync(ChartEvent.ChartOption, result);
+    });
+  }
+
+  // Adapters
+
+  private adaptChartEquity(data: ChartEquityData): ChartEquity {
+    return {
+      symbol: data.key,
+      openPrice: data[ChartEquityFields.OpenPrice],
+      highPrice: data[ChartEquityFields.HighPrice],
+      lowPrice: data[ChartEquityFields.LowPrice],
+      closePrice: data[ChartEquityFields.ClosePrice],
+      volume: data[ChartEquityFields.Volume],
+      sequence: data[ChartEquityFields.Sequence],
+      chartTime: data[ChartEquityFields.ChartTime],
+    };
+  }
+
+  private adaptChartOption(data: ChartOptionData): ChartOption {
+    return {
+      symbol: data.key,
+      openPrice: data[ChartOptionFields.OpenPrice],
+      highPrice: data[ChartOptionFields.HighPrice],
+      lowPrice: data[ChartOptionFields.LowPrice],
+      closePrice: data[ChartOptionFields.ClosePrice],
+      volume: data[ChartOptionFields.Volume],
+      chartTime: data[ChartOptionFields.ChartTime],
+    };
+  }
+
+  // Utilities
+
+  private setupEmitter() {
+    this.client.onData(
+      'CHART_EQUITY',
+      'SUBS',
+      async (data: ChartEquityData[]) => {
+        console.log('data is', data);
+        data.forEach(async (raw) => {
+          const result = this.adaptChartEquity(raw);
+          await this.emitter.emitAsync(ChartEvent.ChartEquity, result);
+        });
       }
     );
-  }
 
-  private adaptChartEquity(content: ChartEquityResponse): ChartEquity {
-    return {
-      symbol: content.key,
-      openPrice: content[ChartEquityFields.OpenPrice],
-      highPrice: content[ChartEquityFields.HighPrice],
-      lowPrice: content[ChartEquityFields.LowPrice],
-      closePrice: content[ChartEquityFields.ClosePrice],
-      volume: content[ChartEquityFields.Volume],
-      sequence: content[ChartEquityFields.Sequence],
-      chartTime: content[ChartEquityFields.ChartTime],
-    };
-  }
-
-  private adaptChartOption(content: ChartOptionResponse): ChartOption {
-    return {
-      symbol: content.key,
-      openPrice: content[ChartOptionFields.OpenPrice],
-      highPrice: content[ChartOptionFields.HighPrice],
-      lowPrice: content[ChartOptionFields.LowPrice],
-      closePrice: content[ChartOptionFields.ClosePrice],
-      volume: content[ChartOptionFields.Volume],
-      chartTime: content[ChartOptionFields.ChartTime],
-    };
+    this.client.onData(
+      'CHART_OPTIONS',
+      'SUBS',
+      async (data: ChartOptionData[]) => {
+        data.forEach(async (raw) => {
+          const result = this.adaptChartOption(raw);
+          await this.emitter.emitAsync(ChartEvent.ChartOption, result);
+        });
+      }
+    );
   }
 }

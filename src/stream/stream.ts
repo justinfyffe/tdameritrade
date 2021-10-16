@@ -76,18 +76,10 @@ export class Stream {
     this.quotes = new Quotes(this.client);
     this.timeSales = new TimeSaleService(this.client);
 
-    this.client.onOpen(async () => {
-      await this.emitter.emitAsync(StreamEvent.Open);
-    });
-
-    this.client.onClose(async () => {
-      await this.emitter.emitAsync(StreamEvent.Close);
-    });
-
-    this.client.onError(async (error: Error) => {
-      await this.emitter.emitAsync(StreamEvent.Error, error);
-    });
+    this.setupEmitter();
   }
+
+  // Events
 
   onOpen(fn: () => void | Promise<void>) {
     this.emitter.on(StreamEvent.Open, fn);
@@ -101,8 +93,10 @@ export class Stream {
     this.emitter.on(StreamEvent.Error, fn);
   }
 
+  // Stream Operations
+
   async open(options?: StreamOptions) {
-    if (this.client.isOpen()) {
+    if (this.client.isOpen) {
       return;
     }
 
@@ -122,9 +116,7 @@ export class Stream {
       });
     }
 
-    this.accounts.setSubscriptionKey(
-      this.userPrincipals.streamerSubscriptionKeys.keys[0].key
-    );
+    this.accounts.subscriptionKey = this.userPrincipals.streamerSubscriptionKeys.keys[0].key;
 
     await this.client.open(
       this.userPrincipals.streamerInfo.streamerSocketUrl,
@@ -158,7 +150,7 @@ export class Stream {
       service: 'ADMIN',
       command: 'LOGIN',
       parameters: {
-        credential: jsonToQueryString(credentials),
+        credential: this.jsonToQueryString(credentials),
         token: this.userPrincipals.streamerInfo.token,
         version: '1.0',
       },
@@ -180,15 +172,33 @@ export class Stream {
     });
   }
 
+  // Utilities
+
+  private setupEmitter() {
+    this.client.onOpen(async () => {
+      await this.emitter.emitAsync(StreamEvent.Open);
+    });
+
+    this.client.onClose(async () => {
+      await this.emitter.emitAsync(StreamEvent.Close);
+    });
+
+    this.client.onError(async (error: Error) => {
+      await this.emitter.emitAsync(StreamEvent.Error, error);
+    });
+  }
+
   private getAccount(accounts: AccountSettings[], accountId: string) {
     return accounts.find((account) => account.accountId === accountId)!;
   }
-}
 
-function jsonToQueryString<T = unknown>(json: T) {
-  return Object.keys(json)
-    .map((key) => encodeURIComponent(key) + '=' + encodeURIComponent(json[key]))
-    .join('&');
+  private jsonToQueryString<T = unknown>(json: T) {
+    return Object.keys(json)
+      .map(
+        (key) => encodeURIComponent(key) + '=' + encodeURIComponent(json[key])
+      )
+      .join('&');
+  }
 }
 
 export class StreamError extends Error {

@@ -32,7 +32,7 @@ enum NewsEvent {
   NewsHeadline = 'news-headline',
 }
 
-interface NewsHeadlineResponse {
+interface NewsHeadlineData {
   key: string;
   seq: number;
   [NewsHeadlineFields.ErrorCode]: number;
@@ -54,34 +54,36 @@ interface NewsHeadlineOptions {
 export class NewsService {
   private emitter = new EventEmitter2();
 
-  constructor(private client: Client) {}
+  constructor(private client: Client) {
+    this.setupEmitter();
+  }
+
+  // Events
 
   onNewsHeadline(fn: (newsHeadline: NewsHeadline) => void | Promise<void>) {
     this.emitter.on(NewsEvent.NewsHeadline, fn);
   }
+
+  // Stream Operations
 
   subscribeToNewsHeadlines(options: NewsHeadlineOptions) {
     const fields = Object.values(NewsHeadlineFields).filter(
       (value) => typeof value === 'number'
     );
 
-    this.client.send(
-      {
-        service: 'NEWS_HEADLINE',
-        command: 'SUBS',
-        parameters: {
-          keys: options.symbols.map((symbol) => symbol.toUpperCase()).join(','),
-          fields: fields.join(','),
-        },
+    this.client.send({
+      service: 'NEWS_HEADLINE',
+      command: 'SUBS',
+      parameters: {
+        keys: options.symbols.map((symbol) => symbol.toUpperCase()).join(','),
+        fields: fields.join(','),
       },
-      async (response: NewsHeadlineResponse) => {
-        const result = this.adaptNewsHeadline(response);
-        await this.emitter.emitAsync(NewsEvent.NewsHeadline, result);
-      }
-    );
+    });
   }
 
-  private adaptNewsHeadline(content: NewsHeadlineResponse): NewsHeadline {
+  // Adapters
+
+  private adaptNewsHeadline(content: NewsHeadlineData): NewsHeadline {
     const error = content[NewsHeadlineFields.ErrorCode];
 
     return {
@@ -96,5 +98,20 @@ export class NewsService {
       hot: content[NewsHeadlineFields.IsHot],
       source: content[NewsHeadlineFields.StorySource],
     };
+  }
+
+  // Utilities
+
+  private setupEmitter() {
+    this.client.onData(
+      'NEWS_HEADLINE',
+      'SUBS',
+      async (data: NewsHeadlineData[]) => {
+        data.forEach(async (raw) => {
+          const result = this.adaptNewsHeadline(raw);
+          await this.emitter.emitAsync(NewsEvent.NewsHeadline, result);
+        });
+      }
+    );
   }
 }
