@@ -125,49 +125,48 @@ export enum OrderType {
 }
 
 export interface Order {
-  accountId: number;
-  cancelable: boolean;
-  closeTime: string;
-  complexOrderStrategyType: ComplexOrderStrategyType;
-  destinationLinkName: string;
+  session: OrderSession;
   duration: OrderDuration;
-  editable: boolean;
-  enteredTime: string;
-  filledQuantity: number;
-  orderActivityCollection?: OrderActivity[];
-  orderId: number;
-  orderLegCollection: OrderLeg[];
-  orderStrategyType: OrderStrategyType;
   orderType: OrderType;
-  price: number;
+  complexOrderStrategyType: ComplexOrderStrategyType;
   quantity: number;
+  filledQuantity: number;
   remainingQuantity: number;
   requestedDestination: OrderDestination;
-  session: OrderSession;
+  destinationLinkName: string;
+  price: number;
+  orderLegCollection: OrderLeg[];
+  orderStrategyType: OrderStrategyType;
+  orderId: number;
+  cancelable: boolean;
+  editable: boolean;
   status: OrderStatus;
+  enteredTime: string;
+  closeTime: string;
+  accountId: number;
+  orderActivityCollection?: OrderActivity[];
 }
 
 export interface OrderActivity {
   activityType: OrderActivityType;
-  executionLegs: OrderExecutionLeg[];
   executionType: OrderExecutionType;
-  orderRemainingQuantity: number;
   quantity: number;
+  orderRemainingQuantity: number;
+  executionLegs: OrderExecutionLeg[];
 }
 
 export interface OrderExecutionLeg {
   legId: number;
+  quantity: number;
   mismarkedQuantity: number;
   price: number;
-  quantity: number;
   time: string;
 }
 
 export interface OrderLeg {
-  instruction: OrderLegInstruction;
-  instrument: Instrument;
-  legId: number;
   orderLegType: OrderLegType;
+  legId: number;
+  instrument: Instrument;
   positionEffect: OrderLegPositionEffect;
   quantity: number;
 }
